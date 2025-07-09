@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "9mr1s65clRQ=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\ixser\\OneDrive\\Documents\\GitHub\\istd-offline-csharp\\istd-offline-csharp.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\ixser\\.nuget\\packages\\bouncycastle.cryptography\\2.6.1\\bouncycastle.cryptography.2.6.1.nupkg.sha512"
+  ],
+  "logs": []
+}
