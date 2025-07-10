@@ -12,6 +12,7 @@
     <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.1" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.7" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.7" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="System.Security.Cryptography.Xml" Version="9.0.7" />
     <EmbeddedResource Include="loader\xslt\*.xsl" />
     <EmbeddedResource Include="loader\xml\*.xml" />
