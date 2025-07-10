@@ -1,63 +1,66 @@
-public class EInvoiceSigningResults
+namespace ISTD_OFFLINE_CSHARP.DTOs
 {
-    private String invoiceHash;
-    private String signature;
-    private String qrCode;
-    private String signedXml;
-    private String invoiceUUID;
-
-
-    public EInvoiceSigningResults(String invoiceHash, String signature, String qrCode, String signedXml, String invoiceUUID)
+    public class EInvoiceSigningResults
     {
-        this.invoiceHash = invoiceHash;
-        this.signature = signature;
-        this.qrCode = qrCode;
-        this.signedXml = signedXml;
-        this.invoiceUUID = invoiceUUID;
-    }
+        private String invoiceHash;
+        private String signature;
+        private String qrCode;
+        private String signedXml;
+        private String invoiceUUID;
 
-    public String getInvoiceUUID()
-    {
-        return invoiceUUID;
-    }
 
-    public String getInvoiceHash()
-    {
-        return invoiceHash;
-    }
+        public EInvoiceSigningResults(String invoiceHash, String signature, String qrCode, String signedXml, String invoiceUUID)
+        {
+            this.invoiceHash = invoiceHash;
+            this.signature = signature;
+            this.qrCode = qrCode;
+            this.signedXml = signedXml;
+            this.invoiceUUID = invoiceUUID;
+        }
 
-    public void setInvoiceHash(String invoiceHash)
-    {
-        this.invoiceHash = invoiceHash;
-    }
+        public String getInvoiceUUID()
+        {
+            return invoiceUUID;
+        }
 
-    public String getSignature()
-    {
-        return signature;
-    }
+        public String getInvoiceHash()
+        {
+            return invoiceHash;
+        }
 
-    public void setSignature(String signature)
-    {
-        this.signature = signature;
-    }
+        public void setInvoiceHash(String invoiceHash)
+        {
+            this.invoiceHash = invoiceHash;
+        }
 
-    public String getQrCode()
-    {
-        return qrCode;
-    }
+        public String getSignature()
+        {
+            return signature;
+        }
 
-    public void setQrCode(String qrCode)
-    {
-        this.qrCode = qrCode;
-    }
+        public void setSignature(String signature)
+        {
+            this.signature = signature;
+        }
 
-    public String getSignedXml()
-    {
-        return signedXml;
-    }
+        public String getQrCode()
+        {
+            return qrCode;
+        }
 
-    public void setSignedXml(String signedXml)
-    {
-        this.signedXml = signedXml;
+        public void setQrCode(String qrCode)
+        {
+            this.qrCode = qrCode;
+        }
+
+        public String getSignedXml()
+        {
+            return signedXml;
+        }
+
+        public void setSignedXml(String signedXml)
+        {
+            this.signedXml = signedXml;
+        }
     }
 }

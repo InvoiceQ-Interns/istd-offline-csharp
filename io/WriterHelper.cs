@@ -2,7 +2,7 @@
 using System.Text;
 using Microsoft.Extensions.Logging;
 
-namespace istd_offline_csharp.io
+namespace ISTD_OFFLINE_CSHARP.io
 {
     public class WriterHelper
     {

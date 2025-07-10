@@ -1,29 +1,36 @@
 using System;
 using System.IO;
-using System.Text;
 using System.Xml;
 using System.Xml.XPath;
 using Microsoft.Extensions.Logging;
 
 namespace ISTD_OFFLINE_CSHARP.utils
 {
-    public class xmlUtil
+    public class XmlUtil
     {
         private static ILogger logger;
+
         public static void setLogger(ILoggerFactory loggerFactory)
         {
             logger = loggerFactory.CreateLogger("XmlUtil");
         }
-        
+
         public static string transform(XmlDocument document)
         {
             try
             {
+                var settings = new XmlWriterSettings
+                {
+                    OmitXmlDeclaration = false,
+                    Indent = false,
+                    Encoding = new System.Text.UTF8Encoding(false)
+                };
+
                 using var stringWriter = new StringWriter();
-                using var xmlTextWriter = new XmlTextWriter(stringWriter);
-                document.WriteTo(xmlTextWriter);
-                xmlTextWriter.Flush();
-                return stringWriter.GetStringBuilder().ToString();
+                using var xmlWriter = XmlWriter.Create(stringWriter, settings);
+                document.WriteTo(xmlWriter);
+                xmlWriter.Flush();
+                return stringWriter.ToString();
             }
             catch (Exception e)
             {
@@ -32,17 +39,16 @@ namespace ISTD_OFFLINE_CSHARP.utils
             }
         }
 
-
         public static XmlDocument transform(string xmlString)
         {
             try
             {
-                var factory = new XmlDocument
+                var document = new XmlDocument
                 {
-                    PreserveWhitespace = false
+                    PreserveWhitespace = true // Java preserves whitespace
                 };
-                factory.LoadXml(xmlString);
-                return factory;
+                document.LoadXml(xmlString);
+                return document;
             }
             catch (Exception e)
             {
@@ -55,9 +61,18 @@ namespace ISTD_OFFLINE_CSHARP.utils
         {
             try
             {
-                var navigator = document.CreateNavigator();
-                var nodes = navigator.Select(xpathExpression);
-                return (XmlNodeList)((IHasXmlNode)nodes).GetNode().SelectNodes(xpathExpression);
+                var xpath = document.CreateNavigator();
+                var nodes = xpath.Select(xpathExpression);
+                var result = document.CreateNode(XmlNodeType.Element, "dummy", null);
+                while (nodes.MoveNext())
+                {
+                    if (nodes.Current is IHasXmlNode hasNode)
+                    {
+                        var node = hasNode.GetNode();
+                        result.AppendChild(document.ImportNode(node, true));
+                    }
+                }
+                return result.ChildNodes;
             }
             catch (Exception e)
             {
