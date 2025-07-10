@@ -53,6 +53,18 @@
             "BouncyCastle.Cryptography": {
               "target": "Package",
               "version": "[2.6.1, )"
+            },
+            "Microsoft.Extensions.Logging": {
+              "target": "Package",
+              "version": "[9.0.7, )"
+            },
+            "Microsoft.Extensions.Logging.Console": {
+              "target": "Package",
+              "version": "[9.0.7, )"
+            },
+            "System.Security.Cryptography.Xml": {
+              "target": "Package",
+              "version": "[9.0.7, )"
             }
           },
           "imports": [

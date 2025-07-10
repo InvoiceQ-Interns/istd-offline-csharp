@@ -1,0 +1,6 @@
+C:\Users\ixser\OneDrive\Documents\GitHub\istd-offline-csharp\obj\Debug\net9.0\istd-offline-csharp.csproj.AssemblyReference.cache
+C:\Users\ixser\OneDrive\Documents\GitHub\istd-offline-csharp\obj\Debug\net9.0\istd-offline-csharp.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ixser\OneDrive\Documents\GitHub\istd-offline-csharp\obj\Debug\net9.0\istd-offline-csharp.AssemblyInfoInputs.cache
+C:\Users\ixser\OneDrive\Documents\GitHub\istd-offline-csharp\obj\Debug\net9.0\istd-offline-csharp.AssemblyInfo.cs
+C:\Users\ixser\OneDrive\Documents\GitHub\istd-offline-csharp\obj\Debug\net9.0\istd-offline-csharp.csproj.CoreCompileInputs.cache
+C:\Users\ixser\OneDrive\Documents\GitHub\istd-offline-csharp\obj\Debug\net9.0\istd-offline-csharp.sourcelink.json
