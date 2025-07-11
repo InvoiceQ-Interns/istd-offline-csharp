@@ -45,7 +45,7 @@ namespace ISTD_OFFLINE_CSHARP.utils
             {
                 var document = new XmlDocument
                 {
-                    PreserveWhitespace = true // Java preserves whitespace
+                    PreserveWhitespace = true
                 };
                 document.LoadXml(xmlString);
                 return document;

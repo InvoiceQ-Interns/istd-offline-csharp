@@ -8,7 +8,7 @@ using System.Security.Cryptography.Xml;
 using ISTD_OFFLINE_CSHARP.loader;
 using Microsoft.Extensions.Logging;
 
-namespace ISTD_OFFLINE_CSHARP.Helper
+namespace ISTD_OFFLINE_CSHARP.helper
 {
     public class HashingHelper
     {

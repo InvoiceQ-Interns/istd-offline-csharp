@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 using ISTD_OFFLINE_CSHARP.DTOs;
 using Microsoft.Extensions.Logging;
 
-namespace ISTD_OFFLINE_CSHARP.Helper
+namespace ISTD_OFFLINE_CSHARP.helper
 {
     public class DigitalSignatureHelper
     {
