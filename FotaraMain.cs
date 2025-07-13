@@ -41,11 +41,11 @@ namespace fotara
             
             PropertiesManager propertiesManager = propertiesFactory.getPropertiesManager();
 
-           // if (propertiesManager == null)
-           // {
-           //logger.LogError("Failed to load properties manager.");
-           //     return;
-           // }
+           if (propertiesManager == null)
+           {
+               logger.LogError("Failed to load properties manager.");
+               return;
+           }
 
             string[] parameters = args.Skip(1).ToArray();
 
