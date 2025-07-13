@@ -17,8 +17,5 @@
     <EmbeddedResource Include="loader\xslt\*.xsl" />
     <EmbeddedResource Include="loader\xml\*.xml" />
   </ItemGroup>
-  <ItemGroup>
- 
-</ItemGroup>
 
 </Project>

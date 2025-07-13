@@ -4,7 +4,7 @@ using Newtonsoft.Json.Serialization;
 
 namespace istd_offline_csharp.utils
 {
-    public class jsonUtils
+    public class JsonUtils
     {
         private static readonly JsonSerializerSettings mapper = newMapper();
 
