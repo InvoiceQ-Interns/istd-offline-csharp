@@ -7,12 +7,12 @@ namespace ISTD_OFFLINE_CSHARP.processor
 {
     public abstract class ActionProcessor
     {
-        protected readonly ILogger logger;
+        protected readonly ILogger Log;
         protected PropertiesManager propertiesManager;
 
-        protected ActionProcessor(ILogger<ActionProcessor> logger)
+        protected ActionProcessor(ILogger<ActionProcessor> log)
         {
-            this.logger = logger;
+            this.Log = log;
         }
 
         protected abstract bool loadArgs(string[] args);
@@ -26,25 +26,25 @@ namespace ISTD_OFFLINE_CSHARP.processor
 
             if (!loadArgs(args))
             {
-                logger.LogError("Failed to load arguments");
+                Log.LogError("Failed to load arguments");
                 return false;
             }
 
             if (!validateArgs())
             {
-                logger.LogError("Invalid arguments");
+                Log.LogError("Invalid arguments");
                 return false;
             }
 
             if (!process())
             {
-                logger.LogError("Failed to process");
+                Log.LogError("Failed to process");
                 return false;
             }
 
             if (!output())
             {
-                logger.LogError("Failed to output");
+                Log.LogError("Failed to output");
                 return false;
             }
 
