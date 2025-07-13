@@ -2,7 +2,7 @@ using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
-namespace istd_offline_csharp.utils
+namespace ISTD_OFFLINE_CSHARP.utils
 {
     public class JsonUtils
     {

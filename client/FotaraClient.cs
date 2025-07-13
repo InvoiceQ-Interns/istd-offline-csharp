@@ -1,6 +1,6 @@
 ﻿using ISTD_OFFLINE_CSHARP.DTOs;
 using ISTD_OFFLINE_CSHARP.properties;
-using istd_offline_csharp.utils;
+using ISTD_OFFLINE_CSHARP.utils;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Net.Http;
@@ -8,7 +8,7 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 
 
-namespace istd_offline_csharp.client;
+namespace ISTD_OFFLINE_CSHARP.client;
 
 public class FotaraClient
 {

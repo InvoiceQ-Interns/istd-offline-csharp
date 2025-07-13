@@ -23,7 +23,7 @@ namespace ISTD_OFFLINE_CSHARP.loader
         private string signatureXml;
 
         private readonly Assembly assembly;
-        private readonly string resourceBaseNamespace = "istd_offline_csharp.loader";
+        private readonly string resourceBaseNamespace = "ISTD_OFFLINE_CSHARP.loader";
 
         public AppResources(ILogger<AppResources> logger)
         {

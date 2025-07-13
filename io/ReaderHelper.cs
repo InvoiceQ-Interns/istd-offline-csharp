@@ -28,7 +28,7 @@ namespace ISTD_OFFLINE_CSHARP.io
             try
             {
                 var assembly = Assembly.GetExecutingAssembly();
-                string fullName = $"istd_offline_csharp.{normalize(resourcePath)}";
+                string fullName = $"ISTD_OFFLINE_CSHARP.{normalize(resourcePath)}";
                 using Stream stream = assembly.GetManifestResourceStream(fullName);
                 if (stream == null) throw new FileNotFoundException($"Resource {fullName} not found");
 
