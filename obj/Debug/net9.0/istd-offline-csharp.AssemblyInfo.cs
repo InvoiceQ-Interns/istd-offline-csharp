@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("istd-offline-csharp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+db38147d1715b7609e8686e308e8ee3fa4d931cc")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+81af31cb1ebe0f5b9ea19ab074872656b9ee6510")]
 [assembly: System.Reflection.AssemblyProductAttribute("istd-offline-csharp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("istd-offline-csharp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

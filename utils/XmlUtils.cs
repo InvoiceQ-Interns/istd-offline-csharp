@@ -8,11 +8,11 @@ namespace ISTD_OFFLINE_CSHARP.utils
 {
     public class XmlUtil
     {
-        private static ILogger logger;
+        private static ILogger log;
 
         public static void setLogger(ILoggerFactory loggerFactory)
         {
-            logger = loggerFactory.CreateLogger("XmlUtil");
+            log = loggerFactory.CreateLogger("XmlUtil");
         }
 
         public static string transform(XmlDocument document)
@@ -34,7 +34,7 @@ namespace ISTD_OFFLINE_CSHARP.utils
             }
             catch (Exception e)
             {
-                logger?.LogError(e, "something went wrong while transforming xml document, error: {Message}", e.Message);
+                log?.LogError(e, "something went wrong while transforming xml document, error: {Message}", e.Message);
                 return null;
             }
         }
@@ -52,7 +52,7 @@ namespace ISTD_OFFLINE_CSHARP.utils
             }
             catch (Exception e)
             {
-                logger?.LogError(e, "something went wrong while transforming xml document, error: {Message}", e.Message);
+                log?.LogError(e, "something went wrong while transforming xml document, error: {Message}", e.Message);
                 return null;
             }
         }
@@ -76,7 +76,7 @@ namespace ISTD_OFFLINE_CSHARP.utils
             }
             catch (Exception e)
             {
-                logger?.LogError(e, "something went wrong while transforming xml document, error: {Message}", e.Message);
+                log?.LogError(e, "something went wrong while transforming xml document, error: {Message}", e.Message);
                 return null;
             }
         }

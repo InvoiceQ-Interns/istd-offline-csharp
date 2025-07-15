@@ -13,11 +13,11 @@ namespace ISTD_OFFLINE_CSHARP.helper
     public class HashingHelper
     {
 
-        private readonly ILogger<HashingHelper> _logger;
+        private readonly ILogger<HashingHelper> log;
 
-        public HashingHelper(ILogger<HashingHelper> logger)
+        public HashingHelper(ILogger<HashingHelper> log)
         {
-            _logger = logger;
+            log = log;
         }
 
 
@@ -97,7 +97,7 @@ namespace ISTD_OFFLINE_CSHARP.helper
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Something went wrong while hashing XML document");
+                log.LogError(e, "Something went wrong while hashing XML document");
                 return null;
             }
         }

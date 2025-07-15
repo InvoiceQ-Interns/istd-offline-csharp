@@ -20,7 +20,7 @@ namespace ISTD_OFFLINE_CSHARP.helper
 {
     public class SigningHelper
     {
-        private readonly ILogger logger;
+        private readonly ILogger log;
         private readonly HashingHelper hashingHelper;
         private readonly DigitalSignatureHelper digitalSignatureHelper;
         private readonly QRGeneratorHelper qrGeneratorHelper;
@@ -28,7 +28,7 @@ namespace ISTD_OFFLINE_CSHARP.helper
         private readonly string dateTimeFormat = "yyyy-MM-dd'T'HH:mm:ss";
 
         
-        public EInvoiceSigningResults SignEInvoice(string xmlDocument, ECParameters privateKey, string certificateAsString)
+        public EInvoiceSigningResults signEInvoice(string xmlDocument,  ECDsa privateKey, string certificateAsString)
         {
             try
             {
@@ -70,20 +70,20 @@ namespace ISTD_OFFLINE_CSHARP.helper
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Something went wrong while signing the invoice");
+                log.LogError(e, "Something went wrong while signing the invoice");
             }
             return null;
         }
         
         
         
-        public SigningHelper(ILogger<SigningHelper> logger,
+        public SigningHelper(ILogger<SigningHelper> log,
                              HashingHelper hashingHelper,
                              DigitalSignatureHelper digitalSignatureHelper,
                              QRGeneratorHelper qrGeneratorHelper,
                              AppResources appResources)
         {
-            this.logger = logger;
+            this.log = log;
             this.hashingHelper = hashingHelper;
             this.digitalSignatureHelper = digitalSignatureHelper;
             this.qrGeneratorHelper = qrGeneratorHelper;

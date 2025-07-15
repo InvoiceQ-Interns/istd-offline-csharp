@@ -7,14 +7,14 @@ namespace ISTD_OFFLINE_CSHARP.helper
 {
     public class DigitalSignatureHelper
     {
-        private readonly ILogger<DigitalSignatureHelper> _logger;
+        private readonly ILogger<DigitalSignatureHelper> log;
 
-        public DigitalSignatureHelper(ILogger<DigitalSignatureHelper> logger)
+        public DigitalSignatureHelper(ILogger<DigitalSignatureHelper> log)
         {
-            _logger = logger;
+            log = log;
         }
 
-        public DigitalSignature getDigitalSignature(ECParameters privateKeyParams, string invoiceHash)
+        public DigitalSignature getDigitalSignature( ECDsa privateKeyParams, string invoiceHash)
         {
 
 
@@ -27,19 +27,15 @@ namespace ISTD_OFFLINE_CSHARP.helper
 
         }
 
-        private byte[] signECDSA(ECParameters privateKey, byte[] messageHash)
+        private byte[] signECDSA( ECDsa privateKey, byte[] messageHash)
         {
             try
             {
-                using (ECDsa ecdsa = ECDsa.Create())
-                {
-                    ecdsa.ImportParameters(privateKey);
-                    return ecdsa.SignHash(messageHash);
-                }
+                return privateKey.SignHash(messageHash);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Something went wrong while signing the XML document.");
+                log.LogError(ex, "Something went wrong while signing the XML document.");
                 return null;
             }
         }

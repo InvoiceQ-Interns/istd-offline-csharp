@@ -10,7 +10,7 @@ namespace ISTD_OFFLINE_CSHARP.loader
 {
     public class AppResources
     {
-        private readonly ILogger<AppResources> logger;
+        private readonly ILogger<AppResources> log;
 
         private XslCompiledTransform invoiceXslTransformer;
         private XslCompiledTransform removeElementXslTransformer;
@@ -25,9 +25,9 @@ namespace ISTD_OFFLINE_CSHARP.loader
         private readonly Assembly assembly;
         private readonly string resourceBaseNamespace = "ISTD_OFFLINE_CSHARP.loader";
 
-        public AppResources(ILogger<AppResources> logger)
+        public AppResources(ILogger<AppResources> log)
         {
-            this.logger = logger;
+            this.log = log;
             assembly = Assembly.GetExecutingAssembly();
             setTransformers();
             setXmlsValues();
@@ -56,7 +56,7 @@ namespace ISTD_OFFLINE_CSHARP.loader
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Failed to set up XSLT transformers");
+                log.LogError(e, "Failed to set up XSLT transformers");
                 throw;
             }
         }

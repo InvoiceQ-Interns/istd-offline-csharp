@@ -1,35 +1,47 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using ISTD_OFFLINE_CSHARP.io;
+using ISTD_OFFLINE_CSHARP.security;
+using Microsoft.Extensions.Logging;
 
 namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl;
 
 public class DecryptProcess : processor.ActionProcessor
 {
+    private readonly ILogger log;
     public DecryptProcess(ILogger<processor.ActionProcessor> log) : base(log)
     {
-        
+        this.log = log;
     }
     
+    private string encryptedFilePath;
+    private string encryptedFile = "";
+    private string decryptedFile = "";
+
     protected override bool loadArgs(string[] args)
     {
-        Console.WriteLine("im here");
+        if (args.Length != 1)
+        {
+            log?.LogInformation("Usage: dotnet run decrypt <encrypted-file-path>");
+            return false;
+        }
+        encryptedFilePath = args[0];
         return true;
     }
 
     protected override bool validateArgs()
     {
-        Console.WriteLine("im here");
-        return true;
+        encryptedFile = ReaderHelper.readFileAsString(encryptedFilePath);
+        return !string.IsNullOrWhiteSpace(encryptedFile);
     }
 
     protected override bool process()
     {
-        Console.WriteLine("im here");
-        return true;
+        decryptedFile = SecurityUtils.decrypt(encryptedFile);
+        return !string.IsNullOrWhiteSpace(decryptedFile);
     }
 
     protected override bool output()
     {
-        Console.WriteLine("im here");
+        log?.LogInformation("Decrypted file: " + decryptedFile);
         return true;
     }
 }

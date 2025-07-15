@@ -1,15 +1,26 @@
+using Newtonsoft.Json;
+
 namespace ISTD_OFFLINE_CSHARP.DTOs
 {
     public class CsrConfigDto
     {
+        [JsonProperty("commonName")]
         private String commonName;
+        [JsonProperty("serialNumber")]
         private String serialNumber;
+        [JsonProperty("organizationIdentifier")]
         private String organizationIdentifier;
+        [JsonProperty("organizationUnitName")]
         private String organizationUnitName;
+        [JsonProperty("organizationName")]
         private String organizationName;
+        [JsonProperty("countryName")]
         private String countryName;
+        [JsonProperty("invoiceType")]
         private String invoiceType;
+        [JsonProperty("location")]
         private String location;
+        [JsonProperty("industry")]
         private String industry;
 
         public String getCommonName()

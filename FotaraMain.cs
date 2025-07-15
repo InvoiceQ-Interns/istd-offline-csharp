@@ -10,11 +10,11 @@ namespace fotara
 {
     public class FotaraMain
     {
-        private readonly ILogger<FotaraMain> logger;
+        private readonly ILogger<FotaraMain> log;
 
-        public FotaraMain(ILogger<FotaraMain> logger)
+        public FotaraMain(ILogger<FotaraMain> log)
         {
-            this.logger = logger;
+            this.log = log;
         }
 
         public static void Main(string[] args)
@@ -24,8 +24,8 @@ namespace fotara
                 builder.AddConsole();
             });
 
-            var logger = loggerFactory.CreateLogger<FotaraMain>();
-            var fotaraMain = new FotaraMain(logger);
+            var log = loggerFactory.CreateLogger<FotaraMain>();
+            var fotaraMain = new FotaraMain(log);
             fotaraMain.execute(args, loggerFactory);
         }
 
@@ -33,7 +33,7 @@ namespace fotara
         {
             if (args.Length == 0 || string.IsNullOrWhiteSpace(args[0]))
             {
-                logger.LogError("Usage: dotnet run <action> <args>");
+                log.LogError("Usage: dotnet run <action> <args>");
                 return;
             }
 
@@ -43,7 +43,7 @@ namespace fotara
 
            if (propertiesManager == null)
            {
-               logger.LogError("Failed to load properties manager.");
+               log.LogError("Failed to load properties manager.");
                return;
            }
 
@@ -52,14 +52,14 @@ namespace fotara
             ActionProcessor processor = InputResolver.resolve(action, loggerFactory);
             if (processor == null)
             {
-                logger.LogError("Invalid Action");
+                log.LogError("Invalid Action");
                 return;
             }
 
             bool result = processor.process(parameters, propertiesManager);
             if (!result)
             {
-                logger.LogError("Action processing failed.");
+                log.LogError("Action processing failed.");
             }
         }
     }

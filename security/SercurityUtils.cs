@@ -7,11 +7,11 @@ namespace ISTD_OFFLINE_CSHARP.security
 {
     public class SecurityUtils
     {
-        private static ILogger logger;
+        private static ILogger log;
 
         public static void setLogger(ILoggerFactory loggerFactory)
         {
-            logger = loggerFactory.CreateLogger("SecurityUtils");
+            log = loggerFactory.CreateLogger("SecurityUtils");
         }
 
         private static readonly string algorithm = "AES";

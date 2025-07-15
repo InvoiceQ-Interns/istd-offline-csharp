@@ -19,7 +19,7 @@ namespace ISTD_OFFLINE_CSHARP.io
             }
             catch (Exception e)
             {
-                logger?.LogError(e, "failed to read file");
+                log?.LogError(e, "failed to read file");
                 return null;
             }
         }
@@ -37,15 +37,15 @@ namespace ISTD_OFFLINE_CSHARP.io
             }
             catch (Exception e)
             {
-                logger?.LogError(e, "failed to read resource");
+                log?.LogError(e, "failed to read resource");
                 return null;
             }
         }
-        private static ILogger logger;
+        private static ILogger log;
 
         public static void setLogger(ILoggerFactory loggerFactory)
         {
-            logger = loggerFactory.CreateLogger("ReaderHelper");
+            log = loggerFactory.CreateLogger("ReaderHelper");
         }
 
 

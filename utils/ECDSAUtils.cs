@@ -29,11 +29,12 @@ namespace ISTD_OFFLINE_CSHARP.utils
             return generator.GenerateKeyPair();
         }
 
-        public static ECPrivateKeyParameters getPrivateKey(string base64Pkcs8)
+        public static ECDsa getPrivateKey(string base64Pkcs8)
         {
             byte[] pkcs8Bytes = Convert.FromBase64String(base64Pkcs8);
-            AsymmetricKeyParameter privateKey = PrivateKeyFactory.CreateKey(pkcs8Bytes);
-            return (ECPrivateKeyParameters)privateKey;
+            ECDsa ecdsa = ECDsa.Create();
+            ecdsa.ImportPkcs8PrivateKey(pkcs8Bytes, out _);
+            return ecdsa;
         }
     }
 }

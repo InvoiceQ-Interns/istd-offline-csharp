@@ -9,11 +9,11 @@ namespace ISTD_OFFLINE_CSHARP.helper
 {
     public class RequesterGeneratorHelper
     {
-        private readonly ILogger logger;
+        private readonly ILogger log;
 
-        public RequesterGeneratorHelper(ILoggerFactory loggerFactory)
+        public RequesterGeneratorHelper(ILogger log)
         {
-            logger = loggerFactory.CreateLogger("RequesterGeneratorHelper");
+            log.LogInformation("RequesterGeneratorHelper");
         }
 
         public string generateEInvoiceRequest(string invoiceHash, string uuid, string signedXml)
@@ -44,7 +44,7 @@ namespace ISTD_OFFLINE_CSHARP.helper
             }
             catch (Exception e)
             {
-                logger?.LogError(e, "failed to get invoice data");
+                log?.LogError(e, "failed to get invoice data");
                 return null;
             }
         }

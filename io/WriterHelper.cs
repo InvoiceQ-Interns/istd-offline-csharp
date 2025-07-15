@@ -6,11 +6,11 @@ namespace ISTD_OFFLINE_CSHARP.io
 {
     public class WriterHelper
     {
-        private static ILogger logger;
+        private static ILogger log;
 
         public static void setLogger(ILoggerFactory loggerFactory)
         {
-            logger = loggerFactory.CreateLogger("WriterHelper");
+            log = loggerFactory.CreateLogger("WriterHelper");
         }
 
         public static bool writeFile(string filePath, string content)
@@ -21,7 +21,7 @@ namespace ISTD_OFFLINE_CSHARP.io
             }
             catch (Exception e)
             {
-                logger?.LogError(e, "failed to write file on path");
+                log?.LogError(e, "failed to write file on path");
                 return false;
             }
             return true;
