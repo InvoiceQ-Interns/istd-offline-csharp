@@ -5,7 +5,9 @@ using System.Text;
 using System.Xml;
 using System.Xml.Xsl;
 using System.Security.Cryptography.Xml;
+using ISTD_OFFLINE_CSHARP.ActionProcessor.impl;
 using ISTD_OFFLINE_CSHARP.loader;
+using ISTD_OFFLINE_CSHARP.utils;
 using Microsoft.Extensions.Logging;
 
 namespace ISTD_OFFLINE_CSHARP.helper
@@ -13,11 +15,11 @@ namespace ISTD_OFFLINE_CSHARP.helper
     public class HashingHelper
     {
 
-        private readonly ILogger<HashingHelper> log;
+        private readonly ILogger log;
 
-        public HashingHelper(ILogger<HashingHelper> log)
+        public HashingHelper()
         {
-            log = log;
+            this.log = LoggingUtils.getLoggerFactory().CreateLogger<HashingHelper>();
         }
 
 

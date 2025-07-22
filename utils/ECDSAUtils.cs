@@ -1,40 +1,45 @@
-
-using Org.BouncyCastle.Crypto;
-using Org.BouncyCastle.Crypto.Parameters;
-using Org.BouncyCastle.OpenSsl;
-using Org.BouncyCastle.Security;
+using System;
+using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Asn1.Sec;
 using Org.BouncyCastle.Asn1.X9;
-using Org.BouncyCastle.Math.EC.Rfc8032;
+using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Generators;
-using Org.BouncyCastle.Crypto.Signers;
-using Org.BouncyCastle.Crypto.EC;
-using Org.BouncyCastle.Crypto.Utilities;
-using System.Security.Cryptography;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Math;
+using Org.BouncyCastle.Security;
 
-namespace ISTD_OFFLINE_CSHARP.utils
+namespace ISTD_OFFLINE_CSHARP.utils;
+public class ECDSAUtil
 {
-    public class ECDSAUtil
+    public static AsymmetricCipherKeyPair GenerateKeyPair()
     {
-        public static AsymmetricCipherKeyPair getKeyPair()
-        {
-            var ecParams = SecNamedCurves.GetByName("secp256k1");
-            var domainParams = new ECDomainParameters(ecParams.Curve, ecParams.G, ecParams.N, ecParams.H);
+        var curve = SecNamedCurves.GetByName("secp256k1");
+        var domainParams = new ECDomainParameters(curve.Curve, curve.G, curve.N, curve.H);
 
-            var generator = new ECKeyPairGenerator();
-            var secureRandom = new SecureRandom();
-            var keyGenParams = new ECKeyGenerationParameters(domainParams, secureRandom);
+        
+        var keyGen = new ECKeyPairGenerator();
+        var secureRandom = new SecureRandom();
+        var keyGenParam = new ECKeyGenerationParameters(domainParams, secureRandom);
+        keyGen.Init(keyGenParam);
+        
+        return keyGen.GenerateKeyPair();
+    }
+    public static ECPrivateKeyParameters getPrivateKey(string base64Key)
+    {
+        byte[] keyBytes = Convert.FromBase64String(base64Key);
 
-            generator.Init(keyGenParams);
-            return generator.GenerateKeyPair();
-        }
+        // Try parsing the EC PRIVATE KEY (SEC1)
+        Asn1Sequence seq = (Asn1Sequence)Asn1Object.FromByteArray(keyBytes);
+        DerOctetString privateKeyOctet = seq[1] as DerOctetString;
 
-        public static ECDsa getPrivateKey(string base64Pkcs8)
-        {
-            byte[] pkcs8Bytes = Convert.FromBase64String(base64Pkcs8);
-            ECDsa ecdsa = ECDsa.Create();
-            ecdsa.ImportPkcs8PrivateKey(pkcs8Bytes, out _);
-            return ecdsa;
-        }
+        if (privateKeyOctet == null)
+            throw new ArgumentException("Failed to parse EC private key");
+
+        BigInteger d = new BigInteger(1, privateKeyOctet.GetOctets());
+
+        var curve = SecNamedCurves.GetByName("secp256k1");
+        var domainParams = new ECDomainParameters(curve.Curve, curve.G, curve.N, curve.H);
+
+        return new ECPrivateKeyParameters(d, domainParams);
     }
 }

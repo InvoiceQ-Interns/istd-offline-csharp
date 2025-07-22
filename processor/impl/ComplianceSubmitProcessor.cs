@@ -21,10 +21,10 @@ public class ComplianceSubmitProcessor : processor.ActionProcessor
     private ComplianceInvoiceResponse eInvoiceResponse;
     private string outputPath;
 
-    public ComplianceSubmitProcessor(ILogger<processor.ActionProcessor> log) : base(log)
+    public ComplianceSubmitProcessor()
     {
-        this.log = log;
-        requesterGeneratorHelper = new RequesterGeneratorHelper(log);
+        this.log = LoggingUtils.getLoggerFactory().CreateLogger<ComplianceSubmitProcessor>();
+        requesterGeneratorHelper = new RequesterGeneratorHelper();
     }
 
     protected override bool loadArgs(string[] args)

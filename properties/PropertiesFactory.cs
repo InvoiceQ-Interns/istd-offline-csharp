@@ -1,16 +1,18 @@
 using System;
+using ISTD_OFFLINE_CSHARP.ActionProcessor.impl;
 using Microsoft.Extensions.Logging;
 
 using ISTD_OFFLINE_CSHARP.properties.impl;
+using ISTD_OFFLINE_CSHARP.utils;
+
 namespace ISTD_OFFLINE_CSHARP.properties
 {
     public class propertiesFactory
     {
-        private static ILogger log;
+        private readonly static ILogger log = LoggingUtils.getLoggerFactory().CreateLogger<propertiesFactory>();
 
-        public static void setLogger(ILoggerFactory loggerFactory)
+        public propertiesFactory()
         {
-            log = loggerFactory.CreateLogger("PropertiesFactory");
         }
 
         public static PropertiesManager getPropertiesManager()

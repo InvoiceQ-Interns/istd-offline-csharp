@@ -1,11 +1,13 @@
 ﻿using System.Security.Cryptography;
 using ISTD_OFFLINE_CSHARP.DTOs;
 using ISTD_OFFLINE_CSHARP.helper;
+using ISTD_OFFLINE_CSHARP.Helper;
 using ISTD_OFFLINE_CSHARP.io;
 using ISTD_OFFLINE_CSHARP.security;
 using ISTD_OFFLINE_CSHARP.utils;
 using Microsoft.Extensions.Logging;
 using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Parameters;
 
 namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl;
 
@@ -18,14 +20,15 @@ public class InvoiceSignProcessor : processor.ActionProcessor
     private string privateKeyPath = "";
     private string certificatePath = "";
     private string outputFile = "";
-    private  ECDsa privateKey;
+    private  ECPrivateKeyParameters privateKey;
     private string xmlFile = "";
     private string certificateStr = "";
     private EInvoiceSigningResults signingResults;
 
-    public InvoiceSignProcessor(ILogger<processor.ActionProcessor> log) : base(log)
+    public InvoiceSignProcessor()
     {
-        this.log = log;
+        this.log = LoggingUtils.getLoggerFactory().CreateLogger<InvoiceSignProcessor>();
+        this.signingHelper = new SigningHelper();
     }
 
     protected override bool loadArgs(string[] args)
@@ -57,6 +60,14 @@ public class InvoiceSignProcessor : processor.ActionProcessor
 
     protected override bool process()
     {
+        
+        if (signingHelper == null)
+        {
+            log?.LogError("SigningHelper is null. Initialization missing.");
+            return false;
+        }
+        
+        
         signingResults = signingHelper.signEInvoice(xmlFile, privateKey, certificateStr);
         return signingResults != null && !string.IsNullOrWhiteSpace(signingResults.getSignedXml());
     }

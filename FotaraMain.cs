@@ -3,6 +3,7 @@ using System.Linq;
 using ISTD_OFFLINE_CSHARP.processor;
 using ISTD_OFFLINE_CSHARP.properties;
 using ISTD_OFFLINE_CSHARP.resolvers;
+using ISTD_OFFLINE_CSHARP.utils;
 using Microsoft.Extensions.Logging;
 
 
@@ -10,26 +11,22 @@ namespace fotara
 {
     public class FotaraMain
     {
-        private readonly ILogger<FotaraMain> log;
+        private readonly ILogger log;
 
-        public FotaraMain(ILogger<FotaraMain> log)
+        public FotaraMain()
         {
-            this.log = log;
+            this.log = LoggingUtils.getLoggerFactory().CreateLogger<FotaraMain>();
         }
 
         public static void Main(string[] args)
         {
-            using var loggerFactory = LoggerFactory.Create(builder =>
-            {
-                builder.AddConsole();
-            });
 
-            var log = loggerFactory.CreateLogger<FotaraMain>();
-            var fotaraMain = new FotaraMain(log);
-            fotaraMain.execute(args, loggerFactory);
+            
+            var fotaraMain = new FotaraMain();
+            fotaraMain.execute(args);
         }
 
-        private void execute(string[] args, ILoggerFactory loggerFactory)
+        private void execute(string[] args)
         {
             if (args.Length == 0 || string.IsNullOrWhiteSpace(args[0]))
             {
@@ -49,7 +46,7 @@ namespace fotara
 
             string[] parameters = args.Skip(1).ToArray();
 
-            ActionProcessor processor = InputResolver.resolve(action, loggerFactory);
+            ActionProcessor processor = InputResolver.resolve(action);
             if (processor == null)
             {
                 log.LogError("Invalid Action");

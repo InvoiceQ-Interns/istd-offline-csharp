@@ -20,8 +20,10 @@ public class InvoiceSubmitProcessor : processor.ActionProcessor
     private EInvoiceResponse eInvoiceResponse;
     private string outputPath;
     private readonly ILogger log;
-    public InvoiceSubmitProcessor(ILogger<processor.ActionProcessor> log) : base(log)
+    
+    public InvoiceSubmitProcessor()
     {
+        this.log = LoggingUtils.getLoggerFactory().CreateLogger<InvoiceSubmitProcessor>();
     }
     
     

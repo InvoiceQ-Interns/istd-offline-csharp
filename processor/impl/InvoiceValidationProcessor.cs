@@ -1,14 +1,14 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using ISTD_OFFLINE_CSHARP.utils;
+using Microsoft.Extensions.Logging;
 
 namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl;
 
 public class InvoiceValidationProcessor : processor.ActionProcessor
 {
     private readonly ILogger log;
-    public InvoiceValidationProcessor(ILogger<processor.ActionProcessor> log) : base(log)
+    public InvoiceValidationProcessor()
     {
-        this.log = log;
-        log?.LogInformation("InvoiceValidationProcessor created.");
+        this.log = LoggingUtils.getLoggerFactory().CreateLogger<InvoiceValidationProcessor>();
     }
     private string xmlFilePath = "";
 

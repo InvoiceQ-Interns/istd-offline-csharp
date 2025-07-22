@@ -3,10 +3,12 @@ using System.Text;
 using ISTD_OFFLINE_CSHARP.client;
 using ISTD_OFFLINE_CSHARP.DTOs;
 using ISTD_OFFLINE_CSHARP.helper;
+using ISTD_OFFLINE_CSHARP.Helper;
 using ISTD_OFFLINE_CSHARP.io;
 using ISTD_OFFLINE_CSHARP.security;
 using ISTD_OFFLINE_CSHARP.utils;
 using Microsoft.Extensions.Logging;
+using Org.BouncyCastle.Crypto.Parameters;
 
 namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl;
 
@@ -16,7 +18,7 @@ public class OnboardProcessor : processor.ActionProcessor
     private string configFilePath = "";
     private string csrEncoded = "";
     private FotaraClient fClient;
-    private  ECDsa privateKey;
+    private  ECPrivateKeyParameters privateKey;
     private string deviceId;
     private string taxPayerNumber;
     private CsrConfigDto csrConfigDto;
@@ -31,9 +33,9 @@ public class OnboardProcessor : processor.ActionProcessor
     private readonly ILogger<processor.ActionProcessor> log;
     private readonly ILogger<CsrKeysProcessor> CSRLog;
     
-    public OnboardProcessor(ILogger<processor.ActionProcessor> log) : base(log)
+    public OnboardProcessor() 
     {
-        this.log = log;
+        this.log = LoggingUtils.getLoggerFactory().CreateLogger<OnboardProcessor>();
     }
 
    
@@ -66,7 +68,7 @@ public class OnboardProcessor : processor.ActionProcessor
 
     protected override bool process()
     {
-        var csrKeysProcessor = new CsrKeysProcessor(CSRLog);
+        var csrKeysProcessor = new CsrKeysProcessor();
 
         bool isValid = csrKeysProcessor.process(
             new[] { outputDirectory, configFilePath },

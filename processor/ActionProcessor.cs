@@ -2,17 +2,18 @@
 using Microsoft.Extensions.Logging;
 using ISTD_OFFLINE_CSHARP.loader;
 using ISTD_OFFLINE_CSHARP.properties;
+using ISTD_OFFLINE_CSHARP.utils;
 
 namespace ISTD_OFFLINE_CSHARP.processor
 {
     public abstract class ActionProcessor
     {
-        protected readonly ILogger Log;
+        protected readonly ILogger log;
         protected PropertiesManager propertiesManager;
 
-        protected ActionProcessor(ILogger<ActionProcessor> log)
+        protected ActionProcessor()
         {
-            this.Log = log;
+            this.log = LoggingUtils.getLoggerFactory().CreateLogger<ActionProcessor>();
         }
 
         protected abstract bool loadArgs(string[] args);
@@ -26,25 +27,25 @@ namespace ISTD_OFFLINE_CSHARP.processor
 
             if (!loadArgs(args))
             {
-                Log.LogError("Failed to load arguments");
+                log.LogError("Failed to load arguments");
                 return false;
             }
 
             if (!validateArgs())
             {
-                Log.LogError("Invalid arguments");
+                log.LogError("Invalid arguments");
                 return false;
             }
 
             if (!process())
             {
-                Log.LogError("Failed to process");
+                log.LogError("Failed to process");
                 return false;
             }
 
             if (!output())
             {
-                Log.LogError("Failed to output");
+                log.LogError("Failed to output");
                 return false;
             }
 

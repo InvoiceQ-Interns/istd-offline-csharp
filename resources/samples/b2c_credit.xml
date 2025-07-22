@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Invoice
+        xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+        xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+        xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
+        xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2">
+    <cbc:ProfileID>reporting:1.0</cbc:ProfileID>
+    <cbc:ID>${ID}</cbc:ID>
+    <cbc:UUID>${UUID}</cbc:UUID>
+    <cbc:IssueDate>${ISSUE_DATE}</cbc:IssueDate>
+    <cbc:IssueTime>11:26:17</cbc:IssueTime>
+    <cbc:InvoiceTypeCode name="022">381</cbc:InvoiceTypeCode>
+    <cbc:Note>Notes</cbc:Note>
+    <cbc:DocumentCurrencyCode>JOD</cbc:DocumentCurrencyCode>
+    <cbc:TaxCurrencyCode>JOD</cbc:TaxCurrencyCode>
+    <cac:BillingReference>
+        <cac:InvoiceDocumentReference>
+            <cbc:ID>${ORG_ID}</cbc:ID>
+            <cbc:UUID>${ORG_UUID}</cbc:UUID>
+            <cbc:DocumentDescription>${PAYABLE_AMOUNT}</cbc:DocumentDescription>
+        </cac:InvoiceDocumentReference>
+    </cac:BillingReference>
+    <cac:AdditionalDocumentReference>
+        <cbc:ID>ICV</cbc:ID>
+        <cbc:UUID>0</cbc:UUID>
+    </cac:AdditionalDocumentReference>
+    <cac:AdditionalDocumentReference>
+        <cbc:ID>QR</cbc:ID>
+        <cac:Attachment>
+            <cbc:EmbeddedDocumentBinaryObject mimeCode="text/plain">${QR_CODE}</cbc:EmbeddedDocumentBinaryObject>
+        </cac:Attachment>
+    </cac:AdditionalDocumentReference>
+    <cac:Signature>
+        <cbc:ID>urn:oasis:names:specification:ubl:signature:Invoice</cbc:ID>
+        <cbc:SignatureMethod>urn:oasis:names:specification:ubl:dsig:enveloped:xades</cbc:SignatureMethod>
+    </cac:Signature>
+    <cac:AccountingSupplierParty>
+        <cac:Party>
+            <cac:PostalAddress>
+                <cac:Country>
+                    <cbc:IdentificationCode>JO</cbc:IdentificationCode>
+                </cac:Country>
+            </cac:PostalAddress>
+            <cac:PartyTaxScheme>
+                <cbc:CompanyID>${VAT_NUMBER}</cbc:CompanyID>
+                <cac:TaxScheme>
+                    <cbc:ID>VAT</cbc:ID>
+                </cac:TaxScheme>
+            </cac:PartyTaxScheme>
+            <cac:PartyLegalEntity>
+                <cbc:RegistrationName>${TAXPAYER_NAME}</cbc:RegistrationName>
+            </cac:PartyLegalEntity>
+        </cac:Party>
+    </cac:AccountingSupplierParty>
+    <cac:AccountingCustomerParty>
+        <cac:Party>
+            <cac:PartyIdentification>
+                <cbc:ID schemeID="CRN"/>
+            </cac:PartyIdentification>
+            <cac:PostalAddress>
+                <cbc:PostalZone/>
+                <cbc:CountrySubentity/>
+                <cac:Country>
+                    <cbc:IdentificationCode>JO</cbc:IdentificationCode>
+                </cac:Country>
+            </cac:PostalAddress>
+            <cac:PartyTaxScheme>
+                <cbc:CompanyID/>
+                <cac:TaxScheme>
+                    <cbc:ID>VAT</cbc:ID>
+                </cac:TaxScheme>
+            </cac:PartyTaxScheme>
+            <cac:PartyLegalEntity>
+                <cbc:RegistrationName>TEST CLIENT</cbc:RegistrationName>
+            </cac:PartyLegalEntity>
+        </cac:Party>
+        <cac:AccountingContact>
+            <cbc:Telephone>0777777777</cbc:Telephone>
+        </cac:AccountingContact>
+    </cac:AccountingCustomerParty>
+    <cac:SellerSupplierParty>
+        <cac:Party>
+            <cac:PartyIdentification>
+                <cbc:ID>${DEVICE_ID}</cbc:ID>
+            </cac:PartyIdentification>
+        </cac:Party>
+    </cac:SellerSupplierParty>
+    <cac:AllowanceCharge>
+        <cbc:ChargeIndicator>false</cbc:ChargeIndicator>
+        <cbc:AllowanceChargeReason>discount</cbc:AllowanceChargeReason>
+        <cbc:Amount currencyID="JOD">00.000000000</cbc:Amount>
+    </cac:AllowanceCharge>
+    <cac:TaxTotal>
+        <cbc:TaxAmount currencyID="JOD">1.600000000</cbc:TaxAmount>
+    </cac:TaxTotal>
+    <cac:LegalMonetaryTotal>
+        <cbc:TaxExclusiveAmount currencyID="JOD">10.000000000</cbc:TaxExclusiveAmount>
+        <cbc:TaxInclusiveAmount currencyID="JOD">11.600000000</cbc:TaxInclusiveAmount>
+        <cbc:AllowanceTotalAmount currencyID="JOD">0.000000000</cbc:AllowanceTotalAmount>
+        <cbc:PayableRoundingAmount currencyID="JOD">0.000000000</cbc:PayableRoundingAmount>
+        <cbc:PayableAmount currencyID="JOD">11.600000000</cbc:PayableAmount>
+    </cac:LegalMonetaryTotal>
+    <cac:InvoiceLine>
+        <cbc:ID>11</cbc:ID>
+        <cbc:InvoicedQuantity unitCode="pcs">1.0000000000</cbc:InvoicedQuantity>
+        <cbc:LineExtensionAmount currencyID="JOD">10.000000000</cbc:LineExtensionAmount>
+        <cac:TaxTotal>
+            <cbc:TaxAmount currencyID="JOD">1.600000000</cbc:TaxAmount>
+            <cbc:RoundingAmount currencyID="JOD">11.600000000</cbc:RoundingAmount>
+            <cac:TaxSubtotal>
+                <cbc:TaxableAmount currencyID="JOD">10.000000000</cbc:TaxableAmount>
+                <cbc:TaxAmount currencyID="JOD">1.600000000</cbc:TaxAmount>
+                <cac:TaxCategory>
+                    <cbc:ID schemeAgencyID="6" schemeID="UN/ECE 5305">S</cbc:ID>
+                    <cbc:Percent>16</cbc:Percent>
+                    <cac:TaxScheme/>
+                </cac:TaxCategory>
+            </cac:TaxSubtotal>
+        </cac:TaxTotal>
+        <cac:Item>
+            <cbc:Name>TEST PRODUCT</cbc:Name>
+        </cac:Item>
+        <cac:Price>
+            <cbc:PriceAmount currencyID="JOD">10.00</cbc:PriceAmount>
+            <cac:AllowanceCharge>
+                <cbc:ChargeIndicator>false</cbc:ChargeIndicator>
+                <cbc:AllowanceChargeReason>DISCOUNT</cbc:AllowanceChargeReason>
+                <cbc:Amount currencyID="JOD">0.000000000</cbc:Amount>
+            </cac:AllowanceCharge>
+        </cac:Price>
+    </cac:InvoiceLine>
+</Invoice>

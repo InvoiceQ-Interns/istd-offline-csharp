@@ -5,6 +5,7 @@ using ISTD_OFFLINE_CSHARP.processor;
 using ISTD_OFFLINE_CSHARP.security;
 using ISTD_OFFLINE_CSHARP.utils;
 
+using Org.BouncyCastle.OpenSsl;
 using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Asn1.Microsoft;
 using Org.BouncyCastle.Asn1.Pkcs;
@@ -33,9 +34,9 @@ public class CsrKeysProcessor : processor.ActionProcessor
 {
     private readonly ILogger log;
 
-    public CsrKeysProcessor(ILogger<CsrKeysProcessor> log) : base(log)
+    public CsrKeysProcessor()
     {
-        this.log = log;
+        this.log = LoggingUtils.getLoggerFactory().CreateLogger<CsrKeysProcessor>();
     }
     
     private string outputDirectory = "";
@@ -175,9 +176,21 @@ public class CsrKeysProcessor : processor.ActionProcessor
             return false;
         }
 
-        privateKeyPEM = transform("EC PRIVATE KEY", PrivateKeyInfoFactory.CreatePrivateKeyInfo(privateKey).GetEncoded());
-        publicKeyPEM = transform("EC PUBLIC KEY", SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(publicKey).GetEncoded());
-
+        using (var sw = new StringWriter())
+        {
+            var pemWriter = new Org.BouncyCastle.OpenSsl.PemWriter(sw);
+            pemWriter.WriteObject(privateKey);
+            pemWriter.Writer.Flush();
+            privateKeyPEM = sw.ToString();
+        }
+        
+        using (var sw = new StringWriter())
+        {
+            var pemWriter = new Org.BouncyCastle.OpenSsl.PemWriter(sw);
+            pemWriter.WriteObject(publicKey);
+            pemWriter.Writer.Flush();
+            publicKeyPEM = sw.ToString();
+        }
         return true;
     }
    
@@ -214,7 +227,8 @@ public class CsrKeysProcessor : processor.ActionProcessor
             // Build extensions properly
             X509Extension certTemplateX509Ext = new X509Extension(
                 false,
-                new DerOctetString(new DisplayText(DisplayText.ContentTypeVisibleString, certificateTemplateName))
+                new DerOctetString(new DerPrintableString(certificateTemplateName))
+
             );
 
             X509Extension subjectAltNameX509Ext = new X509Extension(
@@ -246,7 +260,8 @@ public class CsrKeysProcessor : processor.ActionProcessor
             csrPem = transform("CERTIFICATE REQUEST", pkcs10Builder.GetDerEncoded());
             if (csrPem == null) return false;
 
-            csrEncoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(csrPem));
+            csrEncoded = Convert.ToBase64String(pkcs10Builder.GetDerEncoded());
+
         }
         catch (Exception e)
         {
@@ -279,12 +294,12 @@ public class CsrKeysProcessor : processor.ActionProcessor
     {
         try
         {
-            var keyPairGenerator = Org.BouncyCastle.Security.GeneratorUtilities.GetKeyPairGenerator("ECDSA");
-            keyPairGenerator.Init(new Org.BouncyCastle.Crypto.KeyGenerationParameters(
-                new Org.BouncyCastle.Security.SecureRandom(), 256)); // 256-bit EC key
+            var keyPairGenerator = GeneratorUtilities.GetKeyPairGenerator("ECDSA");
+            keyPairGenerator.Init(new KeyGenerationParameters(
+                new SecureRandom(), 256)); // 256-bit EC key
 
             var keyPair = keyPairGenerator.GenerateKeyPair();
-
+        
             publicKey = keyPair.Public;
             privateKey = keyPair.Private;
         }

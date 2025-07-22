@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using System.Xml;
+using ISTD_OFFLINE_CSHARP.ActionProcessor.impl;
 using ISTD_OFFLINE_CSHARP.utils;
 using ISTD_OFFLINE_CSHARP.utils;
 using Microsoft.Extensions.Logging;
@@ -11,9 +12,9 @@ namespace ISTD_OFFLINE_CSHARP.helper
     {
         private readonly ILogger log;
 
-        public RequesterGeneratorHelper(ILogger log)
+        public RequesterGeneratorHelper()
         {
-            log.LogInformation("RequesterGeneratorHelper");
+            this.log = LoggingUtils.getLoggerFactory().CreateLogger<RequesterGeneratorHelper>();
         }
 
         public string generateEInvoiceRequest(string invoiceHash, string uuid, string signedXml)

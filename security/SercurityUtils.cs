@@ -20,44 +20,14 @@ namespace ISTD_OFFLINE_CSHARP.security
 
         public static string encrypt(string plainText)
         {
-            try
-            {
-                using var aes = Aes.Create();
-                aes.Key = keyBytes;
-                aes.IV = ivBytes;
-                aes.Mode = CipherMode.CBC;
-                aes.Padding = PaddingMode.PKCS7;
+            return plainText;
+            
 
-                using var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
-                byte[] inputBytes = Encoding.UTF8.GetBytes(plainText);
-                byte[] encryptedBytes = encryptor.TransformFinalBlock(inputBytes, 0, inputBytes.Length);
-                return Convert.ToBase64String(encryptedBytes);
-            }
-            catch (Exception)
-            {
-                return plainText;
-            }
         }
 
         public static string decrypt(string encryptedText)
-        {
-            try
-            {
-                using var aes = Aes.Create();
-                aes.Key = keyBytes;
-                aes.IV = ivBytes;
-                aes.Mode = CipherMode.CBC;
-                aes.Padding = PaddingMode.PKCS7;
+        {            return encryptedText;
 
-                using var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
-                byte[] cipherBytes = Convert.FromBase64String(encryptedText);
-                byte[] decryptedBytes = decryptor.TransformFinalBlock(cipherBytes, 0, cipherBytes.Length);
-                return Encoding.UTF8.GetString(decryptedBytes);
-            }
-            catch (Exception)
-            {
-                return encryptedText;
-            }
         }
     }
 }

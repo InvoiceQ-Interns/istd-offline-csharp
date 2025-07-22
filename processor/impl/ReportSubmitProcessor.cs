@@ -19,9 +19,9 @@ public class ReportSubmitProcessor : processor.ActionProcessor
     private EInvoiceResponse eInvoiceResponse;
     private String outputPath;
     private readonly ILogger log;
-    public ReportSubmitProcessor(ILogger<processor.ActionProcessor> log) : base(log)
+    public ReportSubmitProcessor() 
     {
-        this.log = log;
+        this.log = LoggingUtils.getLoggerFactory().CreateLogger<ReportSubmitProcessor>();
     }
     
     protected override bool loadArgs(string[] args)

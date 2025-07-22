@@ -1,20 +1,24 @@
 
 using System.Security.Cryptography;
+using ISTD_OFFLINE_CSHARP.ActionProcessor.impl;
 using ISTD_OFFLINE_CSHARP.DTOs;
+using ISTD_OFFLINE_CSHARP.utils;
 using Microsoft.Extensions.Logging;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Crypto.Signers;
 
 namespace ISTD_OFFLINE_CSHARP.helper
 {
     public class DigitalSignatureHelper
     {
-        private readonly ILogger<DigitalSignatureHelper> log;
+        private readonly ILogger log;
 
-        public DigitalSignatureHelper(ILogger<DigitalSignatureHelper> log)
+        public DigitalSignatureHelper()
         {
-            log = log;
+            this.log = LoggingUtils.getLoggerFactory().CreateLogger<DigitalSignatureHelper>();
         }
 
-        public DigitalSignature getDigitalSignature( ECDsa privateKeyParams, string invoiceHash)
+        public DigitalSignature getDigitalSignature( ECPrivateKeyParameters privateKeyParams, string invoiceHash)
         {
 
 
@@ -27,17 +31,23 @@ namespace ISTD_OFFLINE_CSHARP.helper
 
         }
 
-        private byte[] signECDSA( ECDsa privateKey, byte[] messageHash)
+        private byte[] signECDSA( ECPrivateKeyParameters privateKey, byte[] messageHash)
         {
-            try
-            {
-                return privateKey.SignHash(messageHash);
-            }
-            catch (Exception ex)
-            {
-                log.LogError(ex, "Something went wrong while signing the XML document.");
-                return null;
-            }
+            var signer = new ECDsaSigner();
+            signer.Init(true, privateKey);
+
+            // Sign the hashed message, returns BigInteger[] { r, s }
+            var signatureComponents = signer.GenerateSignature(messageHash);
+
+            var r = signatureComponents[0];
+            var s = signatureComponents[1];
+            
+            var sequence = new Org.BouncyCastle.Asn1.DerSequence(
+                new Org.BouncyCastle.Asn1.DerInteger(r),
+                new Org.BouncyCastle.Asn1.DerInteger(s)
+            );
+
+            return sequence.GetDerEncoded();
         }
     }
 }

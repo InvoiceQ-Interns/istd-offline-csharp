@@ -4,6 +4,8 @@ using System.Reflection;
 using System.Text;
 using System.Xml;
 using System.Xml.Xsl;
+using ISTD_OFFLINE_CSHARP.ActionProcessor.impl;
+using ISTD_OFFLINE_CSHARP.utils;
 using Microsoft.Extensions.Logging;
 
 namespace ISTD_OFFLINE_CSHARP.loader
@@ -23,11 +25,11 @@ namespace ISTD_OFFLINE_CSHARP.loader
         private string signatureXml;
 
         private readonly Assembly assembly;
-        private readonly string resourceBaseNamespace = "ISTD_OFFLINE_CSHARP.loader";
+        private readonly string resourceBaseNamespace = "ISTD_OFFLINE_CSHARP.resources";
 
-        public AppResources(ILogger<AppResources> log)
+        public AppResources()
         {
-            this.log = log;
+            this.log = LoggingUtils.getLoggerFactory().CreateLogger<AppResources>();
             assembly = Assembly.GetExecutingAssembly();
             setTransformers();
             setXmlsValues();
@@ -44,20 +46,22 @@ namespace ISTD_OFFLINE_CSHARP.loader
         {
             try
             {
-                invoiceXslTransformer = loadXslt("invoice.xsl");
-                removeElementXslTransformer = loadXslt("xslt.removeElements.xsl");
+                invoiceXslTransformer = loadTransformer("invoice.xsl");
+                removeElementXslTransformer = loadTransformer("xslt/removeElements.xsl");
                 touchTransformer(removeElementXslTransformer);
-                addUBLElementTransformer = loadXslt("xslt.addUBLElement.xsl");
+
+                addUBLElementTransformer = loadTransformer("xslt/addUBLElement.xsl");
                 touchTransformer(addUBLElementTransformer);
-                addQRElementTransformer = loadXslt("xslt.addQRElement.xsl");
+
+                addQRElementTransformer = loadTransformer("xslt/addQRElement.xsl");
                 touchTransformer(addQRElementTransformer);
-                addSignatureElementTransformer = loadXslt("xslt.addSignatureElement.xsl");
+
+                addSignatureElementTransformer = loadTransformer("xslt/addSignatureElement.xsl");
                 touchTransformer(addSignatureElementTransformer);
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                log.LogError(e, "Failed to set up XSLT transformers");
-                throw;
+                throw new Exception("Failed to initialize transformers", ex);
             }
         }
 
@@ -67,17 +71,52 @@ namespace ISTD_OFFLINE_CSHARP.loader
             //cant be implemented like the java version (XslCompiledTransform does not support output properties directly
         }
 
-        private XslCompiledTransform loadXslt(string resourceName)
+        private XslCompiledTransform loadTransformer(string resourceName)
         {
             string fullResourceName = $"{resourceBaseNamespace}.{resourceName.Replace('/', '.').Replace('\\', '.')}";
             using Stream xsltStream = assembly.GetManifestResourceStream(fullResourceName);
             if (xsltStream == null)
                 throw new FileNotFoundException($"Embedded resource '{fullResourceName}' not found.");
 
+            // Read the content and clean it before parsing
+            using StreamReader reader = new StreamReader(xsltStream);
+            string content = reader.ReadToEnd().Trim();
+    
+            // Ensure the XML declaration is at the start with no preceding whitespace
+            if (content.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase))
+            {
+                // Content is already starting with XML declaration
+            }
+            else if (content.Contains("<?xml"))
+            {
+                // Remove everything before the XML declaration
+                int index = content.IndexOf("<?xml", StringComparison.OrdinalIgnoreCase);
+                content = content.Substring(index);
+            }
+            else
+            {
+                content = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + content;
+            }
+    
             var xslt = new XslCompiledTransform();
-            using XmlReader reader = XmlReader.Create(xsltStream);
-            xslt.Load(reader);
-            return xslt;
+            XmlReaderSettings settings = new XmlReaderSettings
+            {
+                DtdProcessing = DtdProcessing.Parse,
+                XmlResolver = new XmlUrlResolver()
+            };
+
+            try
+            {
+                using StringReader stringReader = new StringReader(content);
+                using XmlReader xmlReader = XmlReader.Create(stringReader, settings);
+                xslt.Load(xmlReader, new XsltSettings(true, false), new XmlUrlResolver());
+                return xslt;
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, $"Failed to load transformer from resource '{fullResourceName}'");
+                throw new InvalidOperationException($"Failed to load XSLT from resource '{resourceName}'", ex);
+            }
         }
 
         private string readEmbeddedResourceText(string resourceName)

@@ -1,56 +1,53 @@
 ﻿using ISTD_OFFLINE_CSHARP.ActionProcessor.impl;
+using ISTD_OFFLINE_CSHARP.utils;
 using Microsoft.Extensions.Logging;
 
 namespace ISTD_OFFLINE_CSHARP.resolvers;
 
 public class InputResolver
 {
-    private static ILogger log;
+    private readonly static ILogger log = LoggingUtils.getLoggerFactory().CreateLogger<InputResolver>();
+    
 
-    public static void configureLogger(ILogger<InputResolver> logInstance)
-    {
-        log = logInstance;
-    }
-
-    public static processor.ActionProcessor resolve(string action, ILoggerFactory loggerFactory)
+    public static processor.ActionProcessor resolve(string action)
 {
     switch (action)
     {
         case "generate-csr-keys":
-            return new CsrKeysProcessor(loggerFactory.CreateLogger<CsrKeysProcessor>());
+            return new CsrKeysProcessor();
 
         case "onboard":
-            return new OnboardProcessor(loggerFactory.CreateLogger<OnboardProcessor>());
+            return new OnboardProcessor();
 
         case "validate":
-            return new InvoiceValidationProcessor(loggerFactory.CreateLogger<InvoiceValidationProcessor>());
+            return new InvoiceValidationProcessor();
 
-        case "sign":
-            return new InvoiceSignProcessor(loggerFactory.CreateLogger<InvoiceSignProcessor>());
+        case "invoice-sign":
+            return new InvoiceSignProcessor();
 
         case "generate-qr":
-            return new QrGeneratorProcessor(loggerFactory.CreateLogger<QrGeneratorProcessor>());
+            return new QrGeneratorProcessor();
 
         case "submit-clearance":
-            return new InvoiceSubmitProcessor(loggerFactory.CreateLogger<InvoiceSubmitProcessor>());
+            return new InvoiceSubmitProcessor();
 
         case "submit-report":
-            return new ReportSubmitProcessor(loggerFactory.CreateLogger<ReportSubmitProcessor>());
+            return new ReportSubmitProcessor();
 
         case "compliance-invoice":
-            return new ComplianceSubmitProcessor(loggerFactory.CreateLogger<ComplianceSubmitProcessor>());
+            return new ComplianceSubmitProcessor();
 
         case "decrypt":
-            return new DecryptProcess(loggerFactory.CreateLogger<DecryptProcess>());
+            return new DecryptProcess();
 
         default:
-            var log = loggerFactory.CreateLogger("ActionResolver");
+            
             log.LogError(
                 "Invalid action, allowed actions are:\n" +
                 "1-generate-csr-keys: to Generate CSR and Key Pairs\n" +
                 "2-onboard: to onboard a generated csr\n" +
                 "3-validate: to validate Invoice\n" +
-                "4-sign: to sign Invoice\n" +
+                "4-invoice-sign: to sign Invoice\n" +
                 "5-generate-qr: to generate QR code\n" +
                 "6-submit-clearance: to submit Invoice to Fotara\n" +
                 "7-submit-report: to submit Invoice to Fotara\n" +

@@ -1,5 +1,6 @@
 ﻿using ISTD_OFFLINE_CSHARP.io;
 using ISTD_OFFLINE_CSHARP.security;
+using ISTD_OFFLINE_CSHARP.utils;
 using Microsoft.Extensions.Logging;
 
 namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl;
@@ -7,9 +8,9 @@ namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl;
 public class DecryptProcess : processor.ActionProcessor
 {
     private readonly ILogger log;
-    public DecryptProcess(ILogger<processor.ActionProcessor> log) : base(log)
+    public DecryptProcess()
     {
-        this.log = log;
+        this.log = LoggingUtils.getLoggerFactory().CreateLogger<DecryptProcess>();
     }
     
     private string encryptedFilePath;

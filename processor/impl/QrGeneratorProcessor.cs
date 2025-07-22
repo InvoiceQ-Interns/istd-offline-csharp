@@ -1,10 +1,12 @@
 ﻿using System.Security.Cryptography;
 using ISTD_OFFLINE_CSHARP.DTOs;
 using ISTD_OFFLINE_CSHARP.helper;
+using ISTD_OFFLINE_CSHARP.Helper;
 using ISTD_OFFLINE_CSHARP.io;
 using ISTD_OFFLINE_CSHARP.security;
 using ISTD_OFFLINE_CSHARP.utils;
 using Microsoft.Extensions.Logging;
+using Org.BouncyCastle.Crypto.Parameters;
 
 namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl;
 
@@ -16,21 +18,21 @@ public class QrGeneratorProcessor : processor.ActionProcessor
     private String xmlPath = "";
     private String privateKeyPath = "";
     private String certificatePath = "";
-    private  ECDsa privateKey;
+    private  ECPrivateKeyParameters privateKey;
     private String xmlFile;
     private String certificateStr;
     private EInvoiceSigningResults signingResults;
     
-    public QrGeneratorProcessor(ILogger<processor.ActionProcessor> log) : base(log)
+    public QrGeneratorProcessor()
     {
-        this.log = log;
+        this.log = LoggingUtils.getLoggerFactory().CreateLogger<QrGeneratorProcessor>();
     }
     
     protected override bool loadArgs(string[] args)
     {
         if (args.Length != 3)
         {
-            Console.WriteLine("Usage: dotnet run invoice-sign <xml-path> <private-key-path> <certificate-path>");
+            Console.WriteLine("Usage: dotnet run invoice- <xml-path> <private-key-path> <certificate-path>");
             return false;
         }
         xmlPath = args[0];

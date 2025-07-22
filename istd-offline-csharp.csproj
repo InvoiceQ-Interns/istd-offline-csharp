@@ -16,6 +16,7 @@
     <PackageReference Include="System.Security.Cryptography.Xml" Version="9.0.7" />
     <EmbeddedResource Include="loader\xslt\*.xsl" />
     <EmbeddedResource Include="loader\xml\*.xml" />
+    <EmbeddedResource Include="resources\**\*" />
   </ItemGroup>
 
 </Project>
