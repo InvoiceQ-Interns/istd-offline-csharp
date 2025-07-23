@@ -1,5 +1,4 @@
-﻿
-using ISTD_OFFLINE_CSHARP.DTOs;
+﻿using ISTD_OFFLINE_CSHARP.DTOs;
 using ISTD_OFFLINE_CSHARP.io;
 using ISTD_OFFLINE_CSHARP.processor;
 using ISTD_OFFLINE_CSHARP.security;
@@ -62,6 +61,7 @@ public class CsrKeysProcessor : processor.ActionProcessor
         configFilePath = args[1];
         return true;
     }
+    
 
     protected override bool validateArgs()
 {
@@ -144,6 +144,12 @@ public class CsrKeysProcessor : processor.ActionProcessor
     if (string.IsNullOrWhiteSpace(csrConfigDto.getIndustry()))
     {
         log.LogInformation($"Industry is missing in config file [{configFilePath}]");
+        isValid = false;
+    }
+
+    if (string.IsNullOrWhiteSpace(csrConfigDto.getEmailAddress()))
+    {
+        log.LogInformation($"Email is missing in config file [{configFilePath}]");
         isValid = false;
     }
 
@@ -316,18 +322,12 @@ public class CsrKeysProcessor : processor.ActionProcessor
     {
         var subjectAttributes = new List<DerObjectIdentifier>
         {
-            X509Name.C,        // Country
-            X509Name.OU,       // Organizational Unit
-            X509Name.O,        // Organization Name
-            X509Name.CN        // Common Name
+            X509Name.EmailAddress // Email Address
         };
 
         var subjectValues = new List<string>
         {
-            csrConfigDto.getCountryName(),
-            csrConfigDto.getOrganizationUnitName(),
-            csrConfigDto.getOrganizationName(),
-            csrConfigDto.getCommonName()
+            csrConfigDto.getEmailAddress()
         };
 
         return new X509Name(subjectAttributes, subjectValues);

@@ -22,6 +22,8 @@ namespace ISTD_OFFLINE_CSHARP.DTOs
         private String location;
         [JsonProperty("industry")]
         private String industry;
+        [JsonProperty("email")]
+        private String email;
 
         public String getCommonName()
         {
@@ -112,5 +114,16 @@ namespace ISTD_OFFLINE_CSHARP.DTOs
         {
             this.industry = industry;
         }
+
+        public String getEmailAddress()
+        {
+            return email;
+        }
+
+        public void setEmailAddress(String email)
+        {
+            this.email = email;
+        }
+        
     }
 }

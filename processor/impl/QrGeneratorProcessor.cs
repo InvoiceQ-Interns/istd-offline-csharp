@@ -32,7 +32,7 @@ public class QrGeneratorProcessor : processor.ActionProcessor
     {
         if (args.Length != 3)
         {
-            Console.WriteLine("Usage: dotnet run invoice- <xml-path> <private-key-path> <certificate-path>");
+            Console.WriteLine("Usage: dotnet run invoice-sign <xml-path> <private-key-path> <certificate-path>");
             return false;
         }
         xmlPath = args[0];

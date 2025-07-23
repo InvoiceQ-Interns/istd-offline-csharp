@@ -18,6 +18,7 @@ namespace ISTD_OFFLINE_CSHARP.properties
             data["fotara.api.url.prod.invoice"] = "http://localhost:5212/v1/prod/clear/invoice";
             data["fotara.api.url.prod.report.invoice"] = "http://localhost:5212/v1/prod/report/invoice";
             data["fotara.certificate.template"] = "DEV_TEMP";
+            data["fotara.certificate.template"] = "NQCSignature";
         }
 
         public static PropertiesManager getInstance()
