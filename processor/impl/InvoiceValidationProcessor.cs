@@ -17,7 +17,7 @@ public class InvoiceValidationProcessor : processor.ActionProcessor
     {
         if (args.Length != 1)
         {
-            log?.LogInformation("Usage: dotnet run invoice-validate <xml-file-path>");
+            log?.LogInformation("Usage: dotnet run validate <xml-file-path>");
             return false;
         }
 

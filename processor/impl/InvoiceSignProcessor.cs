@@ -111,7 +111,7 @@ public class InvoiceSignProcessor : processor.ActionProcessor
                 .Replace("-----END EC PRIVATE KEY-----", "")
                 .Replace(Environment.NewLine, "");
 
-            privateKey = ECDSAUtil.getPrivateKey(key);
+            privateKey = ECDSAUtils.getPrivateKey(key);
         }
         catch (Exception e)
         {

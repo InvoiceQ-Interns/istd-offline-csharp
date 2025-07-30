@@ -20,7 +20,7 @@ namespace ISTD_OFFLINE_CSHARP.properties
             string env = Environment.GetEnvironmentVariable("env");
             if (string.IsNullOrWhiteSpace(env))
             {
-                log?.LogError("env param is missing, please provide env param, -Denv=${env} with allowed values [dev,sim,prod]");
+                log?.LogError("env param is missing, please provide env param, set ENV={env} with allowed values [dev,sim,prod]");
                 return null;
             }
 

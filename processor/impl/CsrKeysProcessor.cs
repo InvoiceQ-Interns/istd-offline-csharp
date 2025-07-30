@@ -300,12 +300,7 @@ public class CsrKeysProcessor : processor.ActionProcessor
     {
         try
         {
-            var keyPairGenerator = GeneratorUtilities.GetKeyPairGenerator("ECDSA");
-            keyPairGenerator.Init(new KeyGenerationParameters(
-                new SecureRandom(), 256)); // 256-bit EC key
-
-            var keyPair = keyPairGenerator.GenerateKeyPair();
-        
+            var keyPair = ECDSAUtils.getKeyPair();
             publicKey = keyPair.Public;
             privateKey = keyPair.Private;
         }

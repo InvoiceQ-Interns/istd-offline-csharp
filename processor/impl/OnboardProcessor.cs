@@ -191,7 +191,7 @@ public class OnboardProcessor : processor.ActionProcessor
                 .Replace(Environment.NewLine, "")
                 .Trim();
             
-            privateKey = ECDSAUtil.getPrivateKey(key); 
+            privateKey = ECDSAUtils.getPrivateKey(key); 
         }
         catch (Exception e)
         {
