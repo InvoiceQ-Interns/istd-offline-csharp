@@ -34,13 +34,14 @@ namespace ISTD_OFFLINE_CSHARP.Helper
             appResources = new AppResources();
         }
 
-        public EInvoiceSigningResults? signEInvoice(string xmlDocument, ECPrivateKeyParameters privateKey, string certificateAsString)
+        public EInvoiceSigningResults? signEInvoice(string xmlDocument, ECPrivateKeyParameters privateKey,
+            string certificateAsString)
         {
             try
             {
                 string invoiceHash = hashingHelper.getInvoiceHash(xmlDocument, appResources);
-                
-                // Clean and decode certificate
+
+
                 certificateAsString = certificateAsString
                     .Replace("-----BEGIN CERTIFICATE-----", "")
                     .Replace("-----END CERTIFICATE-----", "")
@@ -49,39 +50,40 @@ namespace ISTD_OFFLINE_CSHARP.Helper
 
                 byte[] certificateBytes = Convert.FromBase64String(certificateAsString);
                 string certificateCopy = certificateAsString;
-                
-                // Use the new X509CertificateLoader to avoid obsolete constructor
+
+
                 X509Certificate2 certificate = X509CertificateLoader.LoadCertificate(certificateBytes);
 
-                // Generate digital signature
-                DigitalSignature digitalSignature = digitalSignatureHelper.getDigitalSignature(privateKey, invoiceHash);
 
-                // Transform XML document
+                DigitalSignature digitalSignature = digitalSignatureHelper.getDigitalSignature(privateKey, invoiceHash);
+                Console.WriteLine(digitalSignature.getDigitalSignature());
+
+
                 xmlDocument = transformXml(xmlDocument);
 
-                // Parse XML document
+
                 XmlDocument document = getXmlDocument(xmlDocument);
                 var nameSpacesMap = getNameSpacesMap();
 
-                // Calculate certificate hashing
+
                 string certificateHashing = encodeBase64(
                     Encoding.UTF8.GetBytes(bytesToHex(hashStringToBytes(Encoding.UTF8.GetBytes(certificateAsString)))));
 
-                // Populate signed signature properties
+               
                 string signedPropertiesHashing = populateSignedSignatureProperties(
                     document, nameSpacesMap, certificateHashing, getCurrentTimestamp(),
                     certificate.Issuer, certificate.SerialNumber);
 
-                // Populate UBL extensions
+                
                 populateUblExtensions(document, nameSpacesMap, digitalSignature.getDigitalSignature(),
                     signedPropertiesHashing, encodeBase64(digitalSignature.getXmlHashing()),
                     certificateCopy);
 
-                // Generate and populate QR code
+                
                 string qrCode = populateQrCode(document, nameSpacesMap, certificate,
                     digitalSignature.getDigitalSignature(), invoiceHash);
 
-                // Extract UUID
+                
                 string uuid = readUuid(xmlDocument);
 
                 return new EInvoiceSigningResults(invoiceHash, digitalSignature.getDigitalSignature(),
@@ -94,19 +96,19 @@ namespace ISTD_OFFLINE_CSHARP.Helper
             }
         }
 
-        private static System.Collections.Generic.Dictionary<string, string> getNameSpacesMap()
+        private static Dictionary<string, string> getNameSpacesMap()
         {
-            return new System.Collections.Generic.Dictionary<string, string>
+            return new Dictionary<string, string>
             {
-                {"", "urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"}, // Default namespace
-                {"cac", "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"},
-                {"cbc", "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"},
-                {"ext", "urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2"},
-                {"sig", "urn:oasis:names:specification:ubl:schema:xsd:CommonSignatureComponents-2"},
-                {"sac", "urn:oasis:names:specification:ubl:schema:xsd:SignatureAggregateComponents-2"},
-                {"sbc", "urn:oasis:names:specification:ubl:schema:xsd:SignatureBasicComponents-2"},
-                {"ds", "http://www.w3.org/2000/09/xmldsig#"},
-                {"xades", "http://uri.etsi.org/01903/v1.3.2#"}
+                { "", "urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" }, // Default namespace
+                { "cac", "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" },
+                { "cbc", "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" },
+                { "ext", "urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2" },
+                { "sig", "urn:oasis:names:specification:ubl:schema:xsd:CommonSignatureComponents-2" },
+                { "sac", "urn:oasis:names:specification:ubl:schema:xsd:SignatureAggregateComponents-2" },
+                { "sbc", "urn:oasis:names:specification:ubl:schema:xsd:SignatureBasicComponents-2" },
+                { "ds", "http://www.w3.org/2000/09/xmldsig#" },
+                { "xades", "http://uri.etsi.org/01903/v1.3.2#" }
             };
         }
 
@@ -115,22 +117,25 @@ namespace ISTD_OFFLINE_CSHARP.Helper
             try
             {
                 log.LogDebug("Starting XML transformation pipeline");
+
                 
-                // Step 1: Remove elements
-                xmlDocument = transformXmlStep(xmlDocument, appResources.getRemoveElementXslTransformer(), "removeElements");
+                xmlDocument = transformXmlStep(xmlDocument, appResources.getRemoveElementXslTransformer(),
+                    "removeElements");
+
                 
-                // Step 2: Add UBL element
-                xmlDocument = transformXmlStep(xmlDocument, appResources.getAddUBLElementTransformer(), "addUBLElement");
+                xmlDocument = transformXmlStep(xmlDocument, appResources.getAddUBLElementTransformer(),
+                    "addUBLElement");
                 xmlDocument = xmlDocument.Replace("UBL-TO-BE-REPLACED", appResources.getUblXml());
+
                 
-                // Step 3: Add QR element
                 xmlDocument = transformXmlStep(xmlDocument, appResources.getAddQRElementTransformer(), "addQRElement");
                 xmlDocument = xmlDocument.Replace("QR-TO-BE-REPLACED", appResources.getQrXml());
+
                 
-                // Step 4: Add signature element
-                xmlDocument = transformXmlStep(xmlDocument, appResources.getAddSignatureElementTransformer(), "addSignatureElement");
+                xmlDocument = transformXmlStep(xmlDocument, appResources.getAddSignatureElementTransformer(),
+                    "addSignatureElement");
                 xmlDocument = xmlDocument.Replace("SIGN-TO-BE-REPLACED", appResources.getSignatureXml());
-                
+
                 log.LogDebug("XML transformation pipeline completed successfully");
                 return xmlDocument;
             }
@@ -141,39 +146,43 @@ namespace ISTD_OFFLINE_CSHARP.Helper
             }
         }
 
-        private string transformXmlStep(string xmlDocument, XslCompiledTransform transformer, string stepName = "unknown")
+        private string transformXmlStep(string xmlDocument, XslCompiledTransform transformer,
+            string stepName = "unknown")
         {
             try
             {
-                // Clean the XML document before transformation
-                xmlDocument = cleanXmlDocument(xmlDocument);
                 
+                xmlDocument = cleanXmlDocument(xmlDocument);
+
                 using var inputStream = new StringReader(xmlDocument);
                 using var outputStream = new StringWriter();
+
                 
-                // Create XML reader with proper settings
                 var readerSettings = new XmlReaderSettings
                 {
                     DtdProcessing = DtdProcessing.Prohibit,
                     XmlResolver = null,
                     NameTable = new NameTable(),
-                    CheckCharacters = false // Allow more flexible XML parsing
+                    CheckCharacters = false 
                 };
-                
+
                 using var xmlReader = XmlReader.Create(inputStream, readerSettings);
+
                 
-                // Create XSL argument list for better transformation control
                 var xsltArgs = new XsltArgumentList();
-                
+
                 transformer.Transform(xmlReader, xsltArgs, outputStream);
-                
+
                 return outputStream.ToString();
             }
             catch (XmlException ex)
             {
-                log.LogError(ex, "XML transformation failed in step '{StepName}' at line {LineNumber}, position {LinePosition}: {Message}", 
+                log.LogError(ex,
+                    "XML transformation failed in step '{StepName}' at line {LineNumber}, position {LinePosition}: {Message}",
                     stepName, ex.LineNumber, ex.LinePosition, ex.Message);
-                throw new InvalidOperationException($"XML transformation failed in step '{stepName}' at line {ex.LineNumber}, position {ex.LinePosition}: {ex.Message}", ex);
+                throw new InvalidOperationException(
+                    $"XML transformation failed in step '{stepName}' at line {ex.LineNumber}, position {ex.LinePosition}: {ex.Message}",
+                    ex);
             }
             catch (Exception ex)
             {
@@ -187,41 +196,41 @@ namespace ISTD_OFFLINE_CSHARP.Helper
             if (string.IsNullOrWhiteSpace(xmlDocument))
                 return xmlDocument;
 
-            // Remove any BOM or invisible characters at the start
+            
             xmlDocument = xmlDocument.Trim('\uFEFF', '\u200B', '\0');
+
             
-            // Remove leading whitespace but preserve structure
             xmlDocument = xmlDocument.TrimStart();
+
             
-            // Ensure XML declaration is properly formatted
             if (!xmlDocument.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase))
             {
                 // Add XML declaration if missing
                 xmlDocument = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + xmlDocument;
             }
+
             
-            // Fix common namespace declaration issues
             xmlDocument = fixNamespaceDeclarations(xmlDocument);
-            
+
             return xmlDocument;
         }
 
         private static string fixNamespaceDeclarations(string xmlDocument)
         {
-            // Fix empty namespace declarations like xmlns="" - remove them completely
+            
             xmlDocument = System.Text.RegularExpressions.Regex.Replace(
-                xmlDocument, 
-                @"\s+xmlns\s*=\s*[""'][\s]*[""']", 
-                "", 
+                xmlDocument,
+                @"\s+xmlns\s*=\s*[""'][\s]*[""']",
+                "",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                
-            // Fix malformed namespace prefix declarations like xmlns:prefix=""
+
+          
             xmlDocument = System.Text.RegularExpressions.Regex.Replace(
                 xmlDocument,
                 @"\s+xmlns:([^=\s]+)\s*=\s*[""'][\s]*[""']",
                 "",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                
+
             return xmlDocument;
         }
 
@@ -237,7 +246,7 @@ namespace ISTD_OFFLINE_CSHARP.Helper
                     CheckCharacters = false,
                     IgnoreWhitespace = false
                 };
-                
+
                 using var stringReader = new StringReader(xmlDocument);
                 using var xmlReader = XmlReader.Create(stringReader, settings);
                 doc.Load(xmlReader);
@@ -252,8 +261,8 @@ namespace ISTD_OFFLINE_CSHARP.Helper
         private static string? getNodeXmlValue(XmlDocument document, Dictionary<string, string> nameSpaces)
         {
             var namespaceManager = new XmlNamespaceManager(document.NameTable);
+
             
-            // Add namespaces, handle default namespace properly
             foreach (var ns in nameSpaces)
             {
                 if (string.IsNullOrEmpty(ns.Key))
@@ -266,7 +275,8 @@ namespace ISTD_OFFLINE_CSHARP.Helper
                 }
             }
 
-            const string xpath = "/def:Invoice/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/sig:UBLDocumentSignatures/sac:SignatureInformation/ds:Signature/ds:Object/xades:QualifyingProperties/xades:SignedProperties";
+            const string xpath =
+                "/def:Invoice/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/sig:UBLDocumentSignatures/sac:SignatureInformation/ds:Signature/ds:Object/xades:QualifyingProperties/xades:SignedProperties";
             XmlNode? node = document.SelectSingleNode(xpath, namespaceManager);
             return node?.OuterXml;
         }
@@ -279,6 +289,7 @@ namespace ISTD_OFFLINE_CSHARP.Helper
                 string hex = (b & 0xFF).ToString("x2");
                 hexString.Append(hex);
             }
+
             return hexString.ToString();
         }
 
@@ -293,7 +304,8 @@ namespace ISTD_OFFLINE_CSHARP.Helper
             return sha256.ComputeHash(toBeHashed);
         }
 
-        private string populateSignedSignatureProperties(XmlDocument document, System.Collections.Generic.Dictionary<string, string> nameSpacesMap,
+        private string populateSignedSignatureProperties(XmlDocument document,
+            Dictionary<string, string> nameSpacesMap,
             string publicKeyHashing, string signatureTimestamp, string x509IssuerName, string serialNumber)
         {
             populateXmlAttributeValue(document, nameSpacesMap,
@@ -310,20 +322,24 @@ namespace ISTD_OFFLINE_CSHARP.Helper
                 serialNumber);
 
             string? signedSignatureElement = getNodeXmlValue(document, nameSpacesMap);
-            
+
             if (!string.IsNullOrEmpty(signedSignatureElement))
             {
-                return encodeBase64(Encoding.UTF8.GetBytes(bytesToHex(hashStringToBytes(Encoding.UTF8.GetBytes(signedSignatureElement)))));
+                return encodeBase64(
+                    Encoding.UTF8.GetBytes(
+                        bytesToHex(hashStringToBytes(Encoding.UTF8.GetBytes(signedSignatureElement)))));
             }
+
             return string.Empty;
         }
 
-        private static void populateXmlAttributeValue(XmlDocument document, System.Collections.Generic.Dictionary<string, string> nameSpaces, 
+        private static void populateXmlAttributeValue(XmlDocument document,
+           Dictionary<string, string> nameSpaces,
             string attributeXpath, string newValue)
         {
             var namespaceManager = new XmlNamespaceManager(document.NameTable);
-            
-            // Add namespaces, handle default namespace properly
+
+           
             foreach (var ns in nameSpaces)
             {
                 if (string.IsNullOrEmpty(ns.Key))
@@ -355,7 +371,8 @@ namespace ISTD_OFFLINE_CSHARP.Helper
             }
         }
 
-        private void populateUblExtensions(XmlDocument document, System.Collections.Generic.Dictionary<string, string> nameSpacesMap,
+        private void populateUblExtensions(XmlDocument document,
+            Dictionary<string, string> nameSpacesMap,
             string digitalSignature, string signedPropertiesHashing, string xmlHashing, string certificate)
         {
             populateXmlAttributeValue(document, nameSpacesMap,
@@ -377,7 +394,8 @@ namespace ISTD_OFFLINE_CSHARP.Helper
             return DateTime.Now.ToString(dateTimeFormatPattern, CultureInfo.InvariantCulture);
         }
 
-        private string populateQrCode(XmlDocument document, System.Collections.Generic.Dictionary<string, string> nameSpacesMap,
+        private string populateQrCode(XmlDocument document,
+            Dictionary<string, string> nameSpacesMap,
             X509Certificate2 certificate, string signature, string hashedXml)
         {
             string? sellerName = getNodeXmlTextValue(document, nameSpacesMap,
@@ -400,14 +418,14 @@ namespace ISTD_OFFLINE_CSHARP.Helper
             string timeStamp = processDateTime(issueDate ?? "", issueTime);
 
             string qrCode = qrGeneratorHelper.generateQrCode(
-                sellerName ?? "", 
-                vatRegistrationNumber ?? "", 
+                sellerName ?? "",
+                vatRegistrationNumber ?? "",
                 timeStamp,
-                invoiceTotal ?? "", 
-                vatTotal ?? "", 
-                hashedXml, 
+                invoiceTotal ?? "",
+                vatTotal ?? "",
+                hashedXml,
                 certificate.GetPublicKey(),
-                signature, 
+                signature,
                 certificate.GetRawCertData());
 
             populateXmlAttributeValue(document, nameSpacesMap,
@@ -423,31 +441,32 @@ namespace ISTD_OFFLINE_CSHARP.Helper
             {
                 issueTime = issueTime.Replace("Z", "");
                 string dateTimeString = $"{issueDate}T{issueTime}";
-                
-                if (DateTime.TryParseExact(dateTimeString, "yyyy-MM-ddTHH:mm:ss", 
-                    CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out DateTime utcDateTime))
+
+                if (DateTime.TryParseExact(dateTimeString, "yyyy-MM-ddTHH:mm:ss",
+                        CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out DateTime utcDateTime))
                 {
-                    // Convert from UTC to GMT+3 (Saudi Arabia time)
+                    // Convert from UTC to GMT+3
                     DateTime ksaTime = utcDateTime.AddHours(3);
                     return ksaTime.ToString(dateTimeFormatPattern, CultureInfo.InvariantCulture);
                 }
             }
-            
+
             string stringDateTime = $"{issueDate}T{issueTime}";
-            if (DateTime.TryParseExact(stringDateTime, "yyyy-MM-ddTHH:mm:ss", 
-                CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime dateTime))
+            if (DateTime.TryParseExact(stringDateTime, "yyyy-MM-ddTHH:mm:ss",
+                    CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime dateTime))
             {
                 return dateTime.ToString(dateTimeFormatPattern, CultureInfo.InvariantCulture);
             }
-            
+
             return stringDateTime;
         }
 
-        private string? getNodeXmlTextValue(XmlDocument document, System.Collections.Generic.Dictionary<string, string> nameSpaces, string attributeXpath)
+        private string? getNodeXmlTextValue(XmlDocument document,
+            Dictionary<string, string> nameSpaces, string attributeXpath)
         {
             var namespaceManager = new XmlNamespaceManager(document.NameTable);
+
             
-            // Add namespaces, handle default namespace properly
             foreach (var ns in nameSpaces)
             {
                 if (string.IsNullOrEmpty(ns.Key))
@@ -472,6 +491,7 @@ namespace ISTD_OFFLINE_CSHARP.Helper
                 log.LogDebug("XML node not found for path: {AttributeXpath}", attributeXpath);
                 return null;
             }
+
             return node.InnerText;
         }
 
@@ -481,16 +501,16 @@ namespace ISTD_OFFLINE_CSHARP.Helper
             {
                 XmlDocument document = getXmlDocument(xmlDocument);
                 var nameSpaces = getNameSpacesMap();
+
                 
-                // Try to get UUID using the namespace-aware method
                 string? uuid = getNodeXmlTextValue(document, nameSpaces, "/Invoice/cbc:UUID");
-                
+
                 if (string.IsNullOrEmpty(uuid))
                 {
                     log.LogWarning("UUID not found in invoice document");
                     return string.Empty;
                 }
-                
+
                 return uuid;
             }
             catch (Exception ex)

@@ -25,66 +25,73 @@ namespace ISTD_OFFLINE_CSHARP.helper
 
         public string getInvoiceHash(string xmlDocument, AppResources appResources)
         {
-            var transformer = getTransformer(appResources);
-            var byteArrayOutputStream = new MemoryStream();
+            
+            string transformedXml = applyJavaTransformationSequence(xmlDocument, appResources);
+            
+            // Apply C14N 1.1 canonicalization
+            string canonicalizedXml = applyC14N11Canonicalization(transformedXml);
+            
+           
+            byte[] hash = hashStringToBytes(canonicalizedXml);
+            string base64Hash = Convert.ToBase64String(hash);
+            
+            return base64Hash;
+        }
+
+        private string applyJavaTransformationSequence(string xmlDocument, AppResources appResources)
+        {
+            
+            xmlDocument = transformXml(xmlDocument, appResources.getRemoveElementXslTransformer());
+            
+            
+            xmlDocument = transformXml(xmlDocument, appResources.getInvoiceXslTransformer());
+            
+            return xmlDocument;
+        }
+
+        private string transformXml(string xmlDocument, XslCompiledTransform transformer)
+        {
+            var outputStream = new MemoryStream();
             var xmlWriterSettings = new XmlWriterSettings
             {
                 Encoding = new UTF8Encoding(false),
                 Indent = false,
-                OmitXmlDeclaration = true
+                OmitXmlDeclaration = true,
+                NewLineHandling = NewLineHandling.Replace,
+                NewLineChars = "\n"
             };
 
-            using (var xmlOutput = XmlWriter.Create(byteArrayOutputStream, xmlWriterSettings))
+            using (var xmlOutput = XmlWriter.Create(outputStream, xmlWriterSettings))
             using (var stringReader = new StringReader(xmlDocument))
-            using (var streamSource = XmlReader.Create(stringReader))
+            using (var xmlReader = XmlReader.Create(stringReader))
             {
-                transformer.Transform(streamSource, xmlOutput);
+                transformer.Transform(xmlReader, xmlOutput);
                 xmlOutput.Flush();
             }
 
-            string canonicalizedXml = canonicalizeXml(byteArrayOutputStream.ToArray());
-            byte[] hash = hashStringToBytes(canonicalizedXml);
-            return Convert.ToBase64String(hash);
+            return Encoding.UTF8.GetString(outputStream.ToArray());
         }
 
-        private string canonicalizeXml(byte[] xmlBytes)
+        private string applyC14N11Canonicalization(string xmlString)
         {
             var xmlDoc = new XmlDocument
             {
                 PreserveWhitespace = true
             };
+            
+            xmlDoc.LoadXml(xmlString);
 
-            using (var stream = new MemoryStream(xmlBytes))
-            {
-                xmlDoc.Load(stream);
-            }
-
-            var transform = new XmlDsigC14NTransform();
-
+           
+            var transform = new XmlDsigC14NTransform(false); 
             transform.LoadInput(xmlDoc);
 
-            using (var s = (Stream)transform.GetOutput(typeof(Stream)))
-            using (var reader = new StreamReader(s, Encoding.UTF8))
+            using (var stream = (Stream)transform.GetOutput(typeof(Stream)))
+            using (var reader = new StreamReader(stream, Encoding.UTF8))
             {
-                return reader.ReadToEnd();
+                string result = reader.ReadToEnd();
+                
+                return result;
             }
-        }
-
-
-
-        private XslCompiledTransform getTransformer(AppResources appResources)
-        {
-            return appResources.getInvoiceXslTransformer();
-        }
-
-        private XmlWriterSettings getXmlWriterSettings()
-        {
-            return new XmlWriterSettings
-            {
-                Encoding = new UTF8Encoding(false),
-                Indent = false,
-                OmitXmlDeclaration = true
-            };
         }
 
 
