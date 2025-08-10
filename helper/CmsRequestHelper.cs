@@ -12,11 +12,6 @@ namespace ISTD_OFFLINE_CSHARP.Helper
     {
         public static CsrResponseDto createCsr(CsrConfigDto config)
         {
-            if (string.IsNullOrWhiteSpace(config.getKeyPassword()))
-            {
-                throw new ArgumentException("Password must not be null or empty.");
-            }
-
             using RSA rsa = RSA.Create(config.getKeySize());
 
             var certReq = new CertificateRequest(
@@ -35,7 +30,7 @@ namespace ISTD_OFFLINE_CSHARP.Helper
 
             byte[] pkcs10Der = certReq.CreateSigningRequest();
 
-            byte[] privateKeyBytes = exportEncryptedPkcs8PrivateKey(rsa, config.getKeyPassword());
+            byte[] privateKeyBytes = exportPkcs8PrivateKey(rsa);
 
             return new CsrResponseDto(pkcs10Der, privateKeyBytes);
         }
@@ -69,17 +64,15 @@ namespace ISTD_OFFLINE_CSHARP.Helper
             return writer.Encode();
         }
 
-        private static byte[] exportEncryptedPkcs8PrivateKey(RSA rsa, string password)
+        private static byte[] exportPkcs8PrivateKey(RSA rsa)
         {
             try
             {
-                return rsa.ExportEncryptedPkcs8PrivateKey(
-                    password,
-                    new PbeParameters(PbeEncryptionAlgorithm.Aes256Cbc, HashAlgorithmName.SHA256, 100000));
+                return rsa.ExportPkcs8PrivateKey();
             }
             catch (Exception e)
             {
-                throw new Exception("Failed to encrypt private key: " + e.Message, e);
+                throw new Exception("Failed to export private key: " + e.Message, e);
             }
         }
     }

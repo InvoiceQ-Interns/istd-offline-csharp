@@ -28,27 +28,25 @@ namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl
         private CsrResponseDto csrResponse;
         private string csrPem;
         private string csrDerBase64;
-        private string encryptedPrivateKeyBase64;
+        private string privateKeyBase64;
         private string publicKeyPem;
 
         protected override bool loadArgs(string[] args)
         {
-            if (args.Length != 5)
+            if (args.Length != 4)
             {
-                log.LogInformation("Usage: dotnet run generate-csr-keys <directory> <en-name> <serial-number> <key-password> <config-file>");
+                log.LogInformation("Usage: dotnet run generate-csr-keys <directory> <en-name> <serial-number> <config-file>");
                 return false;
             }
 
             outputDirectory = args[0];
             string enName = args[1];
             string serialNumber = args[2];
-            string keyPassword = args[3];
-            configFilePath = args[4];
+            configFilePath = args[3];
 
             csrConfigDto = new CsrConfigDto();
             csrConfigDto.setEnName(enName);
             csrConfigDto.setSerialNumber(serialNumber);
-            csrConfigDto.setKeyPassword(keyPassword);
 
             return true;
         }
@@ -115,12 +113,6 @@ namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl
                 return false;
             }
 
-            if (string.IsNullOrWhiteSpace(csrConfigDto.getKeyPassword()))
-            {
-                log.LogInformation("Please enter a password for the private key.");
-                return false;
-            }
-
             if (csrConfigDto.getKeySize() < 1024)
             {
                 log.LogInformation("Key size must be at least 1024 bits");
@@ -145,17 +137,17 @@ namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl
                 
                 csrResponse = CmsRequestHelper.createCsr(csrConfigDto);
                 
-                byte[] publicKeyBytes = extractPublicKeyFromPrivateKey(csrResponse.getPrivateKeyBytes(), csrConfigDto.getKeyPassword());
+                byte[] publicKeyBytes = extractPublicKeyFromPrivateKey(csrResponse.getPrivateKeyBytes());
 
                 string csrBase64 = Convert.ToBase64String(csrResponse.getCsrDer());
                 string cleanedCsr = StringUtils.CleanCsrString(csrBase64);
 
                 csrPem = convertToPem("CERTIFICATE REQUEST", csrResponse.getCsrDer());
                 csrDerBase64 = cleanedCsr;
-                encryptedPrivateKeyBase64 = Convert.ToBase64String(csrResponse.getPrivateKeyBytes());
+                privateKeyBase64 = Convert.ToBase64String(csrResponse.getPrivateKeyBytes());
                 publicKeyPem = convertToPem("PUBLIC KEY", publicKeyBytes);
 
-                log.LogInformation("Successfully generated CSR, encrypted private key, and public key");
+                log.LogInformation("Successfully generated CSR, unencrypted private key, and public key");
                 return true;
             }
             catch (Exception e)
@@ -165,12 +157,12 @@ namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl
             }
         }
 
-        private byte[] extractPublicKeyFromPrivateKey(byte[] encryptedPrivateKeyBytes, string password)
+        private byte[] extractPublicKeyFromPrivateKey(byte[] privateKeyBytes)
         {
             using (RSA rsa = RSA.Create())
             {
-                // Import the encrypted private key
-                rsa.ImportEncryptedPkcs8PrivateKey(password, encryptedPrivateKeyBytes, out _);
+                // Import the unencrypted private key
+                rsa.ImportPkcs8PrivateKey(privateKeyBytes, out _);
                 
                 // Export the public key
                 return rsa.ExportSubjectPublicKeyInfo();
@@ -189,7 +181,7 @@ namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl
             string pubFile = Path.Combine(outputDirectory, $"{baseFileName}.pub");
 
             bool valid = WriterHelper.writeFile(csrFile, SecurityUtils.encrypt(csrDerBase64));
-            valid = WriterHelper.writeFile(keyFile, SecurityUtils.encrypt(encryptedPrivateKeyBase64)) && valid;
+            valid = WriterHelper.writeFile(keyFile, SecurityUtils.encrypt(privateKeyBase64)) && valid;
             valid = WriterHelper.writeFile(pubFile, SecurityUtils.encrypt(publicKeyPem)) && valid;
 
             if (valid)

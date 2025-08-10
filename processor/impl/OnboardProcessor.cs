@@ -40,9 +40,9 @@ namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl
 
         protected override bool loadArgs(string[] args)
         {
-            if (args.Length != 6)
+            if (args.Length != 5)
             {
-                log?.LogInformation("Usage: dotnet run onboard <otp> <output-directory> <en-name> <serial-number> <key-password> <config-file>");
+                log?.LogInformation("Usage: dotnet run onboard <otp> <output-directory> <en-name> <serial-number> <config-file>");
                 return false;
             }
 
@@ -56,13 +56,11 @@ namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl
             outputDirectory = args[1];
             string enName = args[2];
             string serialNumber = args[3];
-            string keyPassword = args[4];
-            configFilePath = args[5];
+            configFilePath = args[4];
 
             csrConfigDto = new CsrConfigDto();
             csrConfigDto.setEnName(enName);
             csrConfigDto.setSerialNumber(serialNumber);
-            csrConfigDto.setKeyPassword(keyPassword);
 
             client = new FotaraClient(propertiesManager);
             return true;
@@ -120,7 +118,7 @@ namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl
         {
             CsrKeysProcessor csrKeysProcessor = new CsrKeysProcessor();
             string[] csrArgs = { outputDirectory, csrConfigDto.getEnName(), csrConfigDto.getSerialNumber(),
-                               csrConfigDto.getKeyPassword(), configFilePath };
+                               configFilePath };
             bool isValid = csrKeysProcessor.process(csrArgs, propertiesManager);
             if (!isValid)
             {
@@ -232,18 +230,9 @@ namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl
                 string privateKeyBase64 = SecurityUtils.decrypt(ReaderHelper.readFileAsString(keyFile));
                 byte[] privateKeyBytes = Convert.FromBase64String(privateKeyBase64);
 
-                // Try to load as encrypted PKCS#8 first, then fallback to plain PKCS#8
-                try
-                {
-                    privateKey = RSA.Create();
-                    privateKey.ImportEncryptedPkcs8PrivateKey(csrConfigDto.getKeyPassword(), privateKeyBytes, out _);
-                }
-                catch
-                {
-                    // Fallback to plain PKCS#8
-                    privateKey = RSA.Create();
-                    privateKey.ImportPkcs8PrivateKey(privateKeyBytes, out _);
-                }
+                // Import as plain PKCS#8 (unencrypted)
+                privateKey = RSA.Create();
+                privateKey.ImportPkcs8PrivateKey(privateKeyBytes, out _);
             }
             catch (Exception e)
             {

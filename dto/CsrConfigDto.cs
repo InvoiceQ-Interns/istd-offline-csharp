@@ -9,8 +9,6 @@ namespace ISTD_OFFLINE_CSHARP.DTOs
 
         private string serialNumber;
         
-        private string keyPassword;
-        
         [JsonProperty("keySize")]
         private int keySize = 2048;
         
@@ -43,16 +41,6 @@ namespace ISTD_OFFLINE_CSHARP.DTOs
         public void setSerialNumber(string serialNumber)
         {
             this.serialNumber = serialNumber;
-        }
-
-        public string getKeyPassword()
-        {
-            return keyPassword;
-        }
-
-        public void setKeyPassword(string keyPassword)
-        {
-            this.keyPassword = keyPassword;
         }
 
         public int getKeySize()
@@ -95,10 +83,6 @@ namespace ISTD_OFFLINE_CSHARP.DTOs
             this.minorVersion = minorVersion;
         }
 
-        public string getPassword()
-        {
-            return keyPassword;
-        }
 
         public string getSubjectDn()
         {

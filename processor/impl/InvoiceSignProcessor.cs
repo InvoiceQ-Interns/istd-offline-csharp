@@ -17,7 +17,6 @@ public class InvoiceSignProcessor : processor.ActionProcessor
     private string privateKeyPath = "";
     private string certificatePath = "";
     private string outputFile = "";
-    private string keyPassword = "";
     private RSA privateKey;
     private string xmlFile = "";
     private string certificateStr = "";
@@ -31,16 +30,15 @@ public class InvoiceSignProcessor : processor.ActionProcessor
 
     protected override bool loadArgs(string[] args)
     {
-        if (args.Length < 4 || args.Length > 5)
+        if (args.Length != 4)
         {
-            log?.LogInformation("Usage: dotnet run invoice-sign <xml-path> <private-key-path> <certificate-path> <output-file> [key-password]");
+            log?.LogInformation("Usage: dotnet run invoice-sign <xml-path> <private-key-path> <certificate-path> <output-file>");
             return false;
         }
         xmlPath = args[0];
         privateKeyPath = args[1];
         certificatePath = args[2];
         outputFile = args[3];
-        keyPassword = args.Length == 5 ? args[4] : "";
         return true;
     }
     
@@ -104,8 +102,8 @@ public class InvoiceSignProcessor : processor.ActionProcessor
         {
             privateKeyFile = SecurityUtils.decrypt(privateKeyFile);
             
-            // Use the new PrivateKeyUtil to load the private key
-            privateKey = PrivateKeyUtil.loadPrivateKey(privateKeyFile, keyPassword);
+            // Use the new PrivateKeyUtil to load the private key (no password needed)
+            privateKey = PrivateKeyUtil.loadPrivateKey(privateKeyFile, null);
         }
         catch (Exception e)
         {
