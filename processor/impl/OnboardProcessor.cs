@@ -1,332 +1,393 @@
-﻿using System.Security.Cryptography;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using ISTD_OFFLINE_CSHARP.client;
 using ISTD_OFFLINE_CSHARP.DTOs;
 using ISTD_OFFLINE_CSHARP.helper;
 using ISTD_OFFLINE_CSHARP.Helper;
 using ISTD_OFFLINE_CSHARP.io;
+using ISTD_OFFLINE_CSHARP.processor;
 using ISTD_OFFLINE_CSHARP.security;
 using ISTD_OFFLINE_CSHARP.utils;
 using Microsoft.Extensions.Logging;
-using Org.BouncyCastle.Crypto.Parameters;
 
-namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl;
-
-public class OnboardProcessor : processor.ActionProcessor
+namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl
 {
-    private string outputDirectory = "";
-    private string configFilePath = "";
-    private string csrEncoded = "";
-    private FotaraClient fClient;
-    private  ECPrivateKeyParameters privateKey;
-    private string deviceId;
-    private string taxPayerNumber;
-    private CsrConfigDto csrConfigDto;
-    private string otp;
-    private string complianceCertificateStr;
-    private CertificateResponse complianceCsrResponse;
-    private CertificateResponse prodCertificateResponse;
-    private Queue<string> testQueue = new Queue<string>(10);
-    private Dictionary<string, string> signedXmlMap = new Dictionary<string, string>();
-    private readonly SigningHelper signingHelper;
-    private readonly RequesterGeneratorHelper requesterGeneratorHelper;
-    private readonly ILogger<processor.ActionProcessor> log;
-    private readonly ILogger<CsrKeysProcessor> CSRLog;
-    
-    public OnboardProcessor() 
+    public class OnboardProcessor : processor.ActionProcessor
     {
-        this.log = LoggingUtils.getLoggerFactory().CreateLogger<OnboardProcessor>();
-    }
+        private static readonly string DateFormat = "yyyy-MM-dd";
 
-   
-    
-    protected override bool loadArgs(string[] args)
-    {
-        if (args.Length != 3)
+        private string outputDirectory = "";
+        private string configFilePath = "";
+        private string csrEncoded = "";
+        private RSA privateKey;
+        private string deviceId;
+        private string taxPayerNumber;
+        private CsrConfigDto csrConfigDto;
+        private string otp;
+        private string complianceCertificateStr;
+        private CertificateResponse complianceCsrResponse;
+        private CertificateResponse prodCertificateResponse;
+        private readonly Queue<string> testQueue = new Queue<string>();
+        private readonly Dictionary<string, string> signedXmlMap = new Dictionary<string, string>();
+        private readonly SigningHelper signingHelper = new SigningHelper();
+        private readonly RequesterGeneratorHelper requesterGeneratorHelper = new RequesterGeneratorHelper();
+        private FotaraClient client;
+
+        protected override bool loadArgs(string[] args)
         {
-            log?.LogInformation("Usage: dotnet run onboard <otp> <output-directory> <config-path>");
-            return false;
-        }
-
-        if (string.IsNullOrWhiteSpace(args[0]) || !System.Text.RegularExpressions.Regex.IsMatch(args[0], @"^\d{6}$"))
-        {
-            log?.LogInformation("Invalid otp");
-            return false;
-        }
-
-        otp = args[0];
-        outputDirectory = args[1];
-        configFilePath = args[2];
-        fClient= new FotaraClient(propertiesManager);
-        return true;
-    }
-
-    protected override bool validateArgs()
-    {
-        return true;
-    }
-
-    protected override bool process()
-    {
-        var csrKeysProcessor = new CsrKeysProcessor();
-
-        bool isValid = csrKeysProcessor.process(
-            new[] { outputDirectory, configFilePath },
-            propertiesManager
-        );
-
-        if (!isValid)
-        {
-            return false;
-        }
-
-        if (!loadPrivateKey())
-        {
-            log?.LogInformation("Failed to load private key");
-            return false;
-        }
-
-        if (!loadCsrConfigs())
-        {
-            log?.LogInformation("Failed to load CSR configs");
-            return false;
-        }
-
-        if (!complianceCsr())
-        {
-            log?.LogInformation("Failed to compliance CSR");
-            return false;
-        }
-
-        if (!enrichTestQueue())
-        {
-            log?.LogInformation("Failed to create test XMLs");
-            return false;
-        }
-
-        if (!complianceInvoices())
-        {
-            log?.LogInformation("Failed to compliance invoices");
-            return false;
-        }
-
-        if (!getProdCertificate())
-        {
-            log?.LogInformation("Failed to get prod certificate");
-            return false;
-        }
-
-        return true;
-    }
-
-
-    protected override bool output()
-    {
-        bool valid = true;
-
-        foreach (var entry in signedXmlMap)
-        {
-            string filePath = Path.Combine(outputDirectory, entry.Key);
-            valid = WriterHelper.writeFile(filePath, entry.Value) && valid;
-        }
-
-        string productCertificate = Path.Combine(outputDirectory, "production_csid.cert");
-        string productionResponse = Path.Combine(outputDirectory, "production_response.json");
-
-        string productionResponseJson = JsonUtils.toJson(prodCertificateResponse);
-        valid = WriterHelper.writeFile(productionResponse, SecurityUtils.encrypt(productionResponseJson)) && valid;
-
-        string decodedCert = Encoding.UTF8.GetString(Convert.FromBase64String(prodCertificateResponse.binarySecurityToken));
-        valid = WriterHelper.writeFile(productCertificate, SecurityUtils.encrypt(decodedCert)) && valid;
-
-        return valid;
-    }
-
-    
-    private bool loadCsrConfigs()
-    {
-        try
-        {
-            csrEncoded = SecurityUtils.decrypt(ReaderHelper.readFileAsString(Path.Combine(outputDirectory, "csr.encoded")));
-        
-            string configFileContent = ReaderHelper.readFileAsString(configFilePath);
-            csrConfigDto = JsonUtils.readJson<CsrConfigDto>(configFileContent);
-        
-            if (csrConfigDto == null)
+            if (args.Length != 6)
             {
-                log?.LogError("CSR Config DTO is null.");
+                log?.LogInformation("Usage: dotnet run onboard <otp> <output-directory> <en-name> <serial-number> <key-password> <config-file>");
                 return false;
             }
 
-            string[] serialNumberParts = csrConfigDto.getSerialNumber().Split('|');
-            deviceId = serialNumberParts[2];
-            taxPayerNumber = serialNumberParts[0];
-        }
-        catch (Exception e)
-        {
-            log?.LogError(e, "Failed to load CSR configs");
-            return false;
-        }
-
-        return true;
-    }
-
-    
-    private bool loadPrivateKey()
-    {
-        try
-        {
-            string privateKeyPEM = ReaderHelper.readFileAsString(Path.Combine(outputDirectory, "private.pem"));
-            if (string.IsNullOrWhiteSpace(privateKeyPEM))
+            if (string.IsNullOrWhiteSpace(args[0]) || !Regex.IsMatch(args[0], @"^\d{6}$"))
             {
-                log?.LogError("Private key file is empty or missing.");
+                log?.LogInformation("Invalid otp - must be 6 digits");
                 return false;
             }
 
-            privateKeyPEM = SecurityUtils.decrypt(privateKeyPEM);
+            otp = args[0];
+            outputDirectory = args[1];
+            string enName = args[2];
+            string serialNumber = args[3];
+            string keyPassword = args[4];
+            configFilePath = args[5];
 
-            string key = privateKeyPEM
-                .Replace("-----BEGIN EC PRIVATE KEY-----", "")
-                .Replace("-----END EC PRIVATE KEY-----", "")
-                .Replace(Environment.NewLine, "")
-                .Trim();
-            
-            privateKey = ECDSAUtils.getPrivateKey(key); 
+            csrConfigDto = new CsrConfigDto();
+            csrConfigDto.setEnName(enName);
+            csrConfigDto.setSerialNumber(serialNumber);
+            csrConfigDto.setKeyPassword(keyPassword);
+
+            client = new FotaraClient(propertiesManager);
+            return true;
         }
-        catch (Exception e)
+
+        protected override bool validateArgs()
         {
-            log?.LogError(e, "Failed to load private key");
-            return false;
-        }
-
-        return true;
-    }
-
-    
-    
-    private bool getProdCertificate()
-    {
-        prodCertificateResponse = fClient.getProdCertificate(complianceCsrResponse, complianceCsrResponse.getRequestID());
-
-        return prodCertificateResponse != null &&
-               string.Equals(prodCertificateResponse.getDispositionMessage(), "ISSUED", StringComparison.OrdinalIgnoreCase);
-    }
-    
-    private bool complianceInvoices()
-    {
-        bool valid = true;
-        int counter = 0;
-
-        while (testQueue.Count > 0)
-        {
-            string xml = testQueue.Dequeue();
-            EInvoiceSigningResults signingResults = signingHelper.signEInvoice(xml, privateKey, complianceCertificateStr);
-
-            string jsonBody = requesterGeneratorHelper.generateEInvoiceRequest(
-                signingResults.getInvoiceHash(),
-                signingResults.getInvoiceUUID(),
-                signingResults.getSignedXml());
-
-            ComplianceInvoiceResponse complianceInvoiceResponse = fClient.complianceInvoice(complianceCsrResponse, jsonBody);
-
-            if (complianceInvoiceResponse == null || complianceInvoiceResponse.IsValid() != true)
+            if (!ReaderHelper.isDirectoryExists(outputDirectory))
             {
-                string encodedXml = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(xml));
-                log?.LogInformation($"Failed to compliance invoice [{encodedXml}] and error [{JsonUtils.toJson(complianceInvoiceResponse)}]");
-                valid = false;
+                log?.LogInformation($"Output directory [{outputDirectory}] does not exist");
+                return false;
             }
-            else
+
+            if (string.IsNullOrWhiteSpace(configFilePath))
             {
-                string id = $"einvoice_test_{taxPayerNumber}_{deviceId}_{counter++}.xml";
-                signedXmlMap[id] = signingResults.getSignedXml();
+                log?.LogInformation("Config file path is required");
+                return false;
             }
+
+            string configFile = ReaderHelper.readFileAsString(configFilePath);
+            if (string.IsNullOrWhiteSpace(configFile))
+            {
+                log?.LogInformation($"Config file [{configFilePath}] is empty");
+                return false;
+            }
+
+            CsrConfigDto configFromFile = JsonUtils.readJson<CsrConfigDto>(configFile);
+            if (configFromFile == null)
+            {
+                log?.LogInformation($"Config file [{configFilePath}] is invalid");
+                return false;
+            }
+
+            if (configFromFile.getKeySize() > 0)
+            {
+                csrConfigDto.setKeySize(configFromFile.getKeySize());
+            }
+            if (!string.IsNullOrWhiteSpace(configFromFile.getTemplateOid()))
+            {
+                csrConfigDto.setTemplateOid(configFromFile.getTemplateOid());
+            }
+            if (configFromFile.getMajorVersion() > 0)
+            {
+                csrConfigDto.setMajorVersion(configFromFile.getMajorVersion());
+            }
+            if (configFromFile.getMinorVersion() >= 0)
+            {
+                csrConfigDto.setMinorVersion(configFromFile.getMinorVersion());
+            }
+
+            return true;
         }
 
-        return valid;
-    }
-
-    
-    private bool complianceCsr()
-    {
-        complianceCsrResponse = fClient.complianceCsr(otp, csrEncoded);
-        if (complianceCsrResponse == null)
-            return false;
-
-        byte[] decodedBytes = Convert.FromBase64String(complianceCsrResponse.binarySecurityToken);
-        complianceCertificateStr = System.Text.Encoding.UTF8.GetString(decodedBytes);
-
-        return string.Equals(complianceCsrResponse.getDispositionMessage(), "ISSUED", StringComparison.OrdinalIgnoreCase);
-    }
-    
-    private bool enrichTestQueue()
-    {
-        bool valid = false;
-        try
+        protected override bool process()
         {
-            string invoiceType = csrConfigDto.getInvoiceType();
-            bool isB2B = invoiceType[0] == '1';
-            bool isB2C = invoiceType[1] == '1';
+            CsrKeysProcessor csrKeysProcessor = new CsrKeysProcessor();
+            string[] csrArgs = { outputDirectory, csrConfigDto.getEnName(), csrConfigDto.getSerialNumber(),
+                               csrConfigDto.getKeyPassword(), configFilePath };
+            bool isValid = csrKeysProcessor.process(csrArgs, propertiesManager);
+            if (!isValid)
+            {
+                log?.LogError("Failed to generate CSR and keys");
+                return false;
+            }
+
+            if (!loadPrivateKey())
+            {
+                log?.LogInformation("Failed to load private key");
+                return false;
+            }
+            if (!loadCsrConfigs())
+            {
+                log?.LogInformation("Failed to load CSR configs");
+                return false;
+            }
+            if (!complianceCsr())
+            {
+                log?.LogInformation("Failed to compliance csr");
+                return false;
+            }
+            if (!enrichTestQueue())
+            {
+                log?.LogInformation("Failed to create test xmls");
+                return false;
+            }
+            if (!complianceInvoices())
+            {
+                log?.LogInformation("Failed to compliance invoices");
+                return false;
+            }
+            if (!getProdCertificate())
+            {
+                log?.LogInformation("Failed to get prod certificate");
+                return false;
+            }
+            return true;
+        }
+
+        protected override bool output()
+        {
+            bool valid = true;
+            foreach (string key in signedXmlMap.Keys)
+            {
+                valid = WriterHelper.writeFile(outputDirectory + "/" + key, signedXmlMap[key]) && valid;
+            }
+            string productCertificate = outputDirectory + "/production_csid.cert";
+            string productionResponse = outputDirectory + "/production_response.json";
+            valid = WriterHelper.writeFile(productionResponse, SecurityUtils.encrypt(JsonUtils.toJson(prodCertificateResponse))) && valid;
+            valid = WriterHelper.writeFile(productCertificate,
+                    SecurityUtils.encrypt(Encoding.UTF8.GetString(Convert.FromBase64String(prodCertificateResponse.getBinarySecurityToken()))))
+                    && valid;
+            return valid;
+        }
+
+        private bool loadCsrConfigs()
+        {
+            try
+            {
+                string timestamp = findLatestTimestamp();
+                if (timestamp == null)
+                {
+                    log?.LogError("No CSR files found in output directory");
+                    return false;
+                }
+
+                string commonName = extractCommonNameFromDN(csrConfigDto.getSubjectDn());
+                string baseFileName = $"{commonName}_{timestamp}";
+                string csrFile = outputDirectory + "/" + baseFileName + ".csr";
+
+                csrEncoded = SecurityUtils.decrypt(ReaderHelper.readFileAsString(csrFile));
+
+                string[] serialNumberParts = csrConfigDto.getSerialNumber().Split('|');
+                if (serialNumberParts.Length >= 3)
+                {
+                    deviceId = serialNumberParts[2];
+                    taxPayerNumber = serialNumberParts[0];
+                }
+                else
+                {
+                    deviceId = "1";
+                    taxPayerNumber = csrConfigDto.getSerialNumber();
+                }
+            }
+            catch (Exception e)
+            {
+                log?.LogError(e, "Failed to load CSR configs");
+                return false;
+            }
+            return true;
+        }
+
+        private bool loadPrivateKey()
+        {
+            try
+            {
+                string timestamp = findLatestTimestamp();
+                if (timestamp == null)
+                {
+                    log?.LogError("No private key files found in output directory");
+                    return false;
+                }
+
+                string commonName = extractCommonNameFromDN(csrConfigDto.getSubjectDn());
+                string baseFileName = $"{commonName}_{timestamp}";
+                string keyFile = outputDirectory + "/" + baseFileName + ".key";
+
+                string privateKeyBase64 = SecurityUtils.decrypt(ReaderHelper.readFileAsString(keyFile));
+                byte[] privateKeyBytes = Convert.FromBase64String(privateKeyBase64);
+
+                // Try to load as encrypted PKCS#8 first, then fallback to plain PKCS#8
+                try
+                {
+                    privateKey = RSA.Create();
+                    privateKey.ImportEncryptedPkcs8PrivateKey(csrConfigDto.getKeyPassword(), privateKeyBytes, out _);
+                }
+                catch
+                {
+                    // Fallback to plain PKCS#8
+                    privateKey = RSA.Create();
+                    privateKey.ImportPkcs8PrivateKey(privateKeyBytes, out _);
+                }
+            }
+            catch (Exception e)
+            {
+                log?.LogError(e, "Failed to load private key");
+                return false;
+            }
+            return true;
+        }
+
+        private bool getProdCertificate()
+        {
+            prodCertificateResponse = client.getProdCertificate(complianceCsrResponse, complianceCsrResponse.getRequestID());
+            return prodCertificateResponse != null && string.Equals(prodCertificateResponse.getDispositionMessage(), "ISSUED", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool complianceInvoices()
+        {
+            bool valid = true;
             int counter = 0;
-
-            if (isB2B)
+            while (testQueue.Count > 0)
             {
-                testQueue.Enqueue(EnrichFile(ReaderHelper.readFileFromResource("samples/b2b_invoice.xml") ?? throw new Exception("Missing b2b_invoice"), counter++));
-                testQueue.Enqueue(EnrichFile(ReaderHelper.readFileFromResource("samples/b2b_credit.xml") ?? throw new Exception("Missing b2b_credit"), counter++));
+                string xml = testQueue.Dequeue();
+                EInvoiceSigningResults signingResults = signingHelper.signEInvoice(xml, privateKey, complianceCertificateStr);
+
+                string jsonBody = requesterGeneratorHelper.generateEInvoiceRequest(signingResults.getInvoiceHash(), signingResults.getInvoiceUUID(), signingResults.getSignedXml());
+                ComplianceInvoiceResponse complianceInvoiceResponse = client.complianceInvoice(complianceCsrResponse, jsonBody);
+                if (complianceInvoiceResponse == null || !complianceInvoiceResponse.isValid())
+                {
+                    log?.LogInformation($"Failed to compliance invoice [{Convert.ToBase64String(Encoding.UTF8.GetBytes(xml))}] and error [{JsonUtils.toJson(complianceInvoiceResponse)}]");
+                    valid = false;
+                }
+                else
+                {
+                    string id = $"einvoice_test_{taxPayerNumber}_{deviceId}_{counter++}.xml";
+                    signedXmlMap[id] = signingResults.getSignedXml();
+                }
+            }
+            return valid;
+        }
+
+        private bool complianceCsr()
+        {
+            complianceCsrResponse = client.complianceCsr(otp, csrEncoded);
+            complianceCertificateStr = Encoding.UTF8.GetString(Convert.FromBase64String(complianceCsrResponse.getBinarySecurityToken()));
+            return complianceCsrResponse != null && string.Equals(complianceCsrResponse.getDispositionMessage(), "ISSUED", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool enrichTestQueue()
+        {
+            bool valid = false;
+            try
+            {
+                int counter = 0;
+                testQueue.Enqueue(enrichFile(ReaderHelper.readFileFromResource("samples/b2b_invoice.xml") ?? throw new Exception("Missing b2b_invoice"), counter++));
+                testQueue.Enqueue(enrichFile(ReaderHelper.readFileFromResource("samples/b2b_credit.xml") ?? throw new Exception("Missing b2b_credit"), counter++));
                 valid = true;
             }
-            if (isB2C)
+            catch (Exception e)
             {
-                testQueue.Enqueue(EnrichFile(ReaderHelper.readFileFromResource("samples/b2b_invoice.xml") ?? throw new Exception("Missing b2b_invoice"), counter++));
-                testQueue.Enqueue(EnrichFile(ReaderHelper.readFileFromResource("samples/b2b_credit.xml") ?? throw new Exception("Missing b2b_credit"), counter++));
-                valid = true;
+                log?.LogError(e, "Failed to enrich test queue");
+                return false;
+            }
+            return valid;
+        }
+
+        private string enrichFile(string file, int counter)
+        {
+            string id = $"{taxPayerNumber}_{deviceId}_{counter}";
+            string orgId = $"{taxPayerNumber}_{deviceId}_{counter - 1}";
+            string formattedDate = DateTime.Now.ToString(DateFormat);
+            
+            string enrichedFile = file.Replace("${ID}", id);
+            enrichedFile = enrichedFile.Replace("${UUID}", CreateGuid(id).ToString());
+            enrichedFile = enrichedFile.Replace("${ISSUE_DATE}", formattedDate);
+            enrichedFile = enrichedFile.Replace("${ORG_ID}", orgId);
+            enrichedFile = enrichedFile.Replace("${ORG_UUID}", CreateGuid(orgId).ToString());
+            enrichedFile = enrichedFile.Replace("${VAT_NUMBER}", taxPayerNumber);
+            enrichedFile = enrichedFile.Replace("${TAXPAYER_NAME}", csrConfigDto.getEnName());
+            enrichedFile = enrichedFile.Replace("${DEVICE_ID}", deviceId);
+            return enrichedFile;
+        }
+
+        private Guid CreateGuid(string input)
+        {
+            using (var md5 = MD5.Create())
+            {
+                byte[] hash = md5.ComputeHash(Encoding.UTF8.GetBytes(input));
+                return new Guid(hash);
             }
         }
-        catch (Exception e)
+
+        private string findLatestTimestamp()
         {
-            log?.LogError(e, "Failed to enrich test queue");
-            return false;
+            try
+            {
+                DirectoryInfo dir = new DirectoryInfo(outputDirectory);
+                FileInfo[] files = dir.GetFiles("*.csr").Concat(dir.GetFiles("*.key")).ToArray();
+                if (files.Length == 0)
+                {
+                    return null;
+                }
+
+                string latestTimestamp = null;
+                foreach (FileInfo file in files)
+                {
+                    string fileName = file.Name;
+                    string[] parts = fileName.Split('_');
+                    if (parts.Length >= 2)
+                    {
+                        string timestamp = parts[parts.Length - 1].Replace(".csr", "").Replace(".key", "");
+                        if (latestTimestamp == null || string.Compare(timestamp, latestTimestamp) > 0)
+                        {
+                            latestTimestamp = timestamp;
+                        }
+                    }
+                }
+                return latestTimestamp;
+            }
+            catch (Exception e)
+            {
+                log?.LogError(e, "Failed to find latest timestamp");
+                return null;
+            }
         }
 
-        return valid;
-    }
-
-    
-    
-    private string EnrichFile(string file, int counter)
-    {
-        string id = $"{taxPayerNumber}_{deviceId}_{counter}";
-        string orgId = $"{taxPayerNumber}_{deviceId}_{counter - 1}";
-        string formattedDate = DateTime.Now.ToString("yyyy-MM-dd");
-
-        string enrichedFile = file
-            .Replace("${ID}", id)
-            .Replace("${UUID}", GuidFromString(id).ToString())
-            .Replace("${ISSUE_DATE}", formattedDate)
-            .Replace("${ORG_ID}", orgId)
-            .Replace("${ORG_UUID}", GuidFromString(orgId).ToString())
-            .Replace("${VAT_NUMBER}", taxPayerNumber)
-            .Replace("${TAXPAYER_NAME}", csrConfigDto.getCommonName())
-            .Replace("${DEVICE_ID}", deviceId);
-
-        return enrichedFile;
-    }
-    
-    private Guid GuidFromString(string input)
-    {
-        // Useing SHA1 to mimic UUID.nameUUIDFromBytes
-        using (var sha1 = SHA1.Create())
+        private string extractCommonNameFromDN(string subjectDn)
         {
-            byte[] hash = sha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
-            byte[] guidBytes = new byte[16];
-            Array.Copy(hash, guidBytes, 16);
-
-            // Set UUID version to 5 (name-based using SHA-1) to match behavior
-            guidBytes[6] = (byte)((guidBytes[6] & 0x0F) | (5 << 4));
-            guidBytes[8] = (byte)((guidBytes[8] & 0x3F) | 0x80);
-
-            return new Guid(guidBytes);
+            try
+            {
+                string[] parts = subjectDn.Split(',');
+                foreach (string part in parts)
+                {
+                    string trimmed = part.Trim();
+                    if (trimmed.ToUpper().StartsWith("CN="))
+                    {
+                        return Regex.Replace(trimmed.Substring(3).Trim(), @"[^a-zA-Z0-9_-]", "_");
+                    }
+                }
+                return "CSR";
+            }
+            catch (Exception)
+            {
+                return "CSR";
+            }
         }
     }
-
-
 }

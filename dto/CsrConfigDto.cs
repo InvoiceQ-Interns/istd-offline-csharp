@@ -4,126 +4,110 @@ namespace ISTD_OFFLINE_CSHARP.DTOs
 {
     public class CsrConfigDto
     {
-        [JsonProperty("commonName")]
-        private String commonName;
-        [JsonProperty("serialNumber")]
-        private String serialNumber;
-        [JsonProperty("organizationIdentifier")]
-        private String organizationIdentifier;
-        [JsonProperty("organizationUnitName")]
-        private String organizationUnitName;
-        [JsonProperty("organizationName")]
-        private String organizationName;
-        [JsonProperty("countryName")]
-        private String countryName;
-        [JsonProperty("invoiceType")]
-        private String invoiceType;
-        [JsonProperty("location")]
-        private String location;
-        [JsonProperty("industry")]
-        private String industry;
-        [JsonProperty("email")]
-        private String email;
 
-        public String getCommonName()
+        private string enName;
+
+        private string serialNumber;
+        
+        private string keyPassword;
+        
+        [JsonProperty("keySize")]
+        private int keySize = 2048;
+        
+        [JsonProperty("templateOid")]
+        private string templateOid;
+
+        [JsonProperty("major")] 
+        private int majorVersion;
+
+        [JsonProperty("minor")] 
+        private int minorVersion;
+
+        public CsrConfigDto() { }
+
+        public string getEnName()
         {
-            return commonName;
+            return enName;
         }
 
-        public void setCommonName(String commonName)
+        public void setEnName(string enName)
         {
-            this.commonName = commonName;
+            this.enName = enName;
         }
 
-        public String getSerialNumber()
+        public string getSerialNumber()
         {
             return serialNumber;
         }
 
-        public void setSerialNumber(String serialNumber)
+        public void setSerialNumber(string serialNumber)
         {
             this.serialNumber = serialNumber;
         }
 
-        public String getOrganizationIdentifier()
+        public string getKeyPassword()
         {
-            return organizationIdentifier;
+            return keyPassword;
         }
 
-        public void setOrganizationIdentifier(String organizationIdentifier)
+        public void setKeyPassword(string keyPassword)
         {
-            this.organizationIdentifier = organizationIdentifier;
+            this.keyPassword = keyPassword;
         }
 
-        public String getOrganizationUnitName()
+        public int getKeySize()
         {
-            return organizationUnitName;
+            return keySize;
         }
 
-        public void setOrganizationUnitName(String organizationUnitName)
+        public void setKeySize(int keySize)
         {
-            this.organizationUnitName = organizationUnitName;
+            this.keySize = keySize;
         }
 
-        public String getOrganizationName()
+        public string getTemplateOid()
         {
-            return organizationName;
+            return templateOid;
         }
 
-        public void setOrganizationName(String organizationName)
+        public void setTemplateOid(string templateOid)
         {
-            this.organizationName = organizationName;
+            this.templateOid = templateOid;
         }
 
-        public String getCountryName()
+        public int getMajorVersion()
         {
-            return countryName;
+            return majorVersion;
         }
 
-        public void setCountryName(String countryName)
+        public void setMajorVersion(int majorVersion)
         {
-            this.countryName = countryName;
+            this.majorVersion = majorVersion;
         }
 
-        public String getInvoiceType()
+        public int getMinorVersion()
         {
-            return invoiceType;
+            return minorVersion;
         }
 
-        public void setInvoiceType(String invoiceType)
+        public void setMinorVersion(int minorVersion)
         {
-            this.invoiceType = invoiceType;
+            this.minorVersion = minorVersion;
         }
 
-        public String getLocation()
+        public string getPassword()
         {
-            return location;
+            return keyPassword;
         }
 
-        public void setLocation(String location)
+        public string getSubjectDn()
         {
-            this.location = location;
-        }
+            if (string.IsNullOrWhiteSpace(enName) || string.IsNullOrWhiteSpace(serialNumber))
+            {
+                return null;
+            }
 
-        public String getIndustry()
-        {
-            return industry;
+            return $"CN={enName.Trim()}, O=Government of Jordan, OU=eID, SerialNumber={serialNumber.Trim()}, C=JO";
         }
-
-        public void setIndustry(String industry)
-        {
-            this.industry = industry;
-        }
-
-        public String getEmailAddress()
-        {
-            return email;
-        }
-
-        public void setEmailAddress(String email)
-        {
-            this.email = email;
-        }
-        
     }
 }

@@ -3,360 +3,246 @@ using ISTD_OFFLINE_CSHARP.io;
 using ISTD_OFFLINE_CSHARP.processor;
 using ISTD_OFFLINE_CSHARP.security;
 using ISTD_OFFLINE_CSHARP.utils;
-
-using Org.BouncyCastle.OpenSsl;
-using Org.BouncyCastle.Asn1;
-using Org.BouncyCastle.Asn1.Microsoft;
-using Org.BouncyCastle.Asn1.Pkcs;
-using Org.BouncyCastle.Asn1.X500;
-
-using Org.BouncyCastle.Asn1.X500.Style;
-using Org.BouncyCastle.Asn1.X509;
-using Org.BouncyCastle.Pkcs;
-using Org.BouncyCastle.Security;
-using Org.BouncyCastle.OpenSsl;
-using Org.BouncyCastle.Crypto;
-using Org.BouncyCastle.Crypto.Operators;
+using ISTD_OFFLINE_CSHARP.Helper;
+using Microsoft.Extensions.Logging;
 using Org.BouncyCastle.Utilities.IO.Pem;
-
 using System;
 using System.IO;
-using System.Text;
 using System.Security.Cryptography;
-using System.Collections.Generic;
-using Microsoft.Extensions.Logging;
-using Org.BouncyCastle.X509;
+using System.Text;
 
-namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl;
-
-public class CsrKeysProcessor : processor.ActionProcessor
+namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl
 {
-    private readonly ILogger log;
-
-    public CsrKeysProcessor()
+    public class CsrKeysProcessor : processor.ActionProcessor
     {
-        this.log = LoggingUtils.getLoggerFactory().CreateLogger<CsrKeysProcessor>();
-    }
-    
-    private string outputDirectory = "";
-    private string configFilePath = "";
-    private static AsymmetricKeyParameter  publicKey;
-    private AsymmetricKeyParameter  privateKey;
-    private CsrConfigDto csrConfigDto;
-    private string csrEncoded;
-    private string privateKeyPEM;
-    private string publicKeyPEM;
-    private string csrPem;
+        private readonly ILogger log;
 
-     
-    protected override bool loadArgs(string[] args)
-    {
-        if (args.Length != 2)
+        public CsrKeysProcessor()
         {
-            log.LogInformation("Usage: dotnet run generate-csr-keys <directory> <config-file>");
-            return false;
+            this.log = LoggingUtils.getLoggerFactory().CreateLogger<CsrKeysProcessor>();
         }
 
-        outputDirectory = args[0];
-        configFilePath = args[1];
-        return true;
-    }
-    
+        private string outputDirectory = "";
+        private string configFilePath = "";
+        private CsrConfigDto csrConfigDto;
+        private CsrResponseDto csrResponse;
+        private string csrPem;
+        private string csrDerBase64;
+        private string encryptedPrivateKeyBase64;
+        private string publicKeyPem;
 
-    protected override bool validateArgs()
-{
-    if (!ReaderHelper.isDirectoryExists(outputDirectory))
-    {
-        log.LogInformation($"Output directory [{outputDirectory}] does not exist");
-        return false;
-    }
-
-    if (string.IsNullOrWhiteSpace(configFilePath))
-    {
-        log.LogInformation($"Config file [{configFilePath}] does not exist");
-        return false;
-    }
-
-    string configFile = ReaderHelper.readFileAsString(configFilePath);
-    if (string.IsNullOrWhiteSpace(configFile))
-    {
-        log.LogInformation($"Config file [{configFilePath}] is empty");
-        return false;
-    }
-
-    csrConfigDto = JsonUtils.readJson<CsrConfigDto>(configFile);
-    if (csrConfigDto == null)
-    {
-        log.LogInformation($"Config file [{configFilePath}] is invalid");
-        return false;
-    }
-
-    bool isValid = true;
-
-    if (string.IsNullOrWhiteSpace(csrConfigDto.getCommonName()))
-    {
-        log.LogInformation($"Common name is missing in config file [{configFilePath}]");
-        isValid = false;
-    }
-
-    if (string.IsNullOrWhiteSpace(csrConfigDto.getSerialNumber()))
-    {
-        log.LogInformation($"Serial number is missing in config file [{configFilePath}]");
-        isValid = false;
-    }
-
-    if (string.IsNullOrWhiteSpace(csrConfigDto.getOrganizationIdentifier()))
-    {
-        log.LogInformation($"Organization identifier is missing in config file [{configFilePath}]");
-        isValid = false;
-    }
-
-    if (string.IsNullOrWhiteSpace(csrConfigDto.getOrganizationUnitName()))
-    {
-        log.LogInformation($"Organization unit name is missing in config file [{configFilePath}]");
-        isValid = false;
-    }
-
-    if (string.IsNullOrWhiteSpace(csrConfigDto.getOrganizationName()))
-    {
-        log.LogInformation($"Organization name is missing in config file [{configFilePath}]");
-        isValid = false;
-    }
-
-    if (string.IsNullOrWhiteSpace(csrConfigDto.getCountryName()))
-    {
-        log.LogInformation($"Country name is missing in config file [{configFilePath}]");
-        isValid = false;
-    }
-
-    if (string.IsNullOrWhiteSpace(csrConfigDto.getInvoiceType()))
-    {
-        log.LogInformation($"Invoice type is missing in config file [{configFilePath}]");
-        isValid = false;
-    }
-
-    if (string.IsNullOrWhiteSpace(csrConfigDto.getLocation()))
-    {
-        log.LogInformation($"Location is missing in config file [{configFilePath}]");
-        isValid = false;
-    }
-
-    if (string.IsNullOrWhiteSpace(csrConfigDto.getIndustry()))
-    {
-        log.LogInformation($"Industry is missing in config file [{configFilePath}]");
-        isValid = false;
-    }
-
-    if (string.IsNullOrWhiteSpace(csrConfigDto.getEmailAddress()))
-    {
-        log.LogInformation($"Email is missing in config file [{configFilePath}]");
-        isValid = false;
-    }
-
-    if (isValid && csrConfigDto.getSerialNumber().Split('|').Length != 3)
-    {
-        log.LogInformation($"Serial number [{csrConfigDto.getSerialNumber()}] is invalid, format [TAX_NUMBER|SEQ_NUMBER|DEVICE_ID]");
-        isValid = false;
-    }
-
-    if (isValid && (csrConfigDto.getInvoiceType().Length != 4 || !System.Text.RegularExpressions.Regex.IsMatch(csrConfigDto.getInvoiceType(), "^[01]+$")))
-    {
-        log.LogInformation($"Invoice type [{csrConfigDto.getInvoiceType()}] is invalid, format [4-digit-number (0/1)]");
-        isValid = false;
-    }
-
-    return isValid;
-}
-    
-    protected override bool process()
-    {
-        if (!generateKeyPairs() || publicKey == null || privateKey == null)
+        protected override bool loadArgs(string[] args)
         {
-            log.LogError("Failed to generate CSR keys");
-            return false;
-        }
-
-        if (!buildCsr() || string.IsNullOrWhiteSpace(csrEncoded))
-        {
-            log.LogError("Failed to build CSR");
-            return false;
-        }
-
-        using (var sw = new StringWriter())
-        {
-            var pemWriter = new Org.BouncyCastle.OpenSsl.PemWriter(sw);
-            pemWriter.WriteObject(privateKey);
-            pemWriter.Writer.Flush();
-            privateKeyPEM = sw.ToString();
-        }
-        
-        using (var sw = new StringWriter())
-        {
-            var pemWriter = new Org.BouncyCastle.OpenSsl.PemWriter(sw);
-            pemWriter.WriteObject(publicKey);
-            pemWriter.Writer.Flush();
-            publicKeyPEM = sw.ToString();
-        }
-        return true;
-    }
-   
-    protected override bool output()
-    {
-        log?.LogInformation($"CSR [{SecurityUtils.decrypt(csrEncoded)}]");
-
-        string privateKeyFile = Path.Combine(outputDirectory, "private.pem");
-        string publicKeyFile = Path.Combine(outputDirectory, "public.pem");
-        string csrFile = Path.Combine(outputDirectory, "csr.pem");
-        string csrEncodedFile = Path.Combine(outputDirectory, "csr.encoded");
-
-        bool valid = WriterHelper.writeFile(privateKeyFile, SecurityUtils.encrypt(privateKeyPEM));
-        valid = WriterHelper.writeFile(publicKeyFile, SecurityUtils.encrypt(publicKeyPEM)) && valid;
-        valid = WriterHelper.writeFile(csrFile, SecurityUtils.encrypt(csrPem)) && valid;
-        valid = WriterHelper.writeFile(csrEncodedFile, SecurityUtils.encrypt(csrEncoded)) && valid;
-
-        return valid;
-    }
-
-    
-    
-    private bool buildCsr()
-    {
-        try
-        {
-            string certificateTemplateName = propertiesManager.getProperty("fotara.certificate.template");
-
-            X509Name subject = buildX500SubjectBlock();
-            X509Name x500OtherAttributes = buildX500AttributesBlock();
-
-            var generalNames = new GeneralNames(new GeneralName(GeneralName.DirectoryName, x500OtherAttributes));
-
-            // Build extensions properly
-            X509Extension certTemplateX509Ext = new X509Extension(
-                false,
-                new DerOctetString(new DerPrintableString(certificateTemplateName))
-
-            );
-
-            X509Extension subjectAltNameX509Ext = new X509Extension(
-                false,
-                new DerOctetString(generalNames)
-            );
-
-            var extensionsDict = new Dictionary<DerObjectIdentifier, X509Extension>
+            if (args.Length != 5)
             {
-                { MicrosoftObjectIdentifiers.MicrosoftCertTemplateV1, certTemplateX509Ext },
-                { X509Extensions.SubjectAlternativeName, subjectAltNameX509Ext }
-            };
+                log.LogInformation("Usage: dotnet run generate-csr-keys <directory> <en-name> <serial-number> <key-password> <config-file>");
+                return false;
+            }
 
-            X509Extensions x509Extensions = new X509Extensions(extensionsDict);
+            outputDirectory = args[0];
+            string enName = args[1];
+            string serialNumber = args[2];
+            string keyPassword = args[3];
+            configFilePath = args[4];
 
-            AttributePkcs extensionRequestAttribute = new AttributePkcs(
-                PkcsObjectIdentifiers.Pkcs9AtExtensionRequest,
-                new DerSet(x509Extensions)
-            );
+            csrConfigDto = new CsrConfigDto();
+            csrConfigDto.setEnName(enName);
+            csrConfigDto.setSerialNumber(serialNumber);
+            csrConfigDto.setKeyPassword(keyPassword);
 
-            var pkcs10Builder = new Pkcs10CertificationRequest(
-                "SHA256WITHECDSA",
-                subject,
-                publicKey,
-                new DerSet(extensionRequestAttribute),
-                privateKey
-            );
-
-            csrPem = transform("CERTIFICATE REQUEST", pkcs10Builder.GetDerEncoded());
-            if (csrPem == null) return false;
-
-            csrEncoded = Convert.ToBase64String(pkcs10Builder.GetDerEncoded());
-
+            return true;
         }
-        catch (Exception e)
+
+        protected override bool validateArgs()
         {
-            log?.LogError(e, "Failed to build CSR");
-            return false;
+            if (!ReaderHelper.isDirectoryExists(outputDirectory))
+            {
+                log.LogInformation($"Output directory [{outputDirectory}] does not exist");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(configFilePath))
+            {
+                log.LogInformation("Config file path is required");
+                return false;
+            }
+
+            string configFile = ReaderHelper.readFileAsString(configFilePath);
+            if (string.IsNullOrWhiteSpace(configFile))
+            {
+                log.LogInformation($"Config file [{configFilePath}] is empty");
+                return false;
+            }
+
+            CsrConfigDto configFromFile = JsonUtils.readJson<CsrConfigDto>(configFile);
+            if (configFromFile == null)
+            {
+                log.LogInformation($"Config file [{configFilePath}] is invalid");
+                return false;
+            }
+
+            if (configFromFile.getKeySize() > 0)
+            {
+                csrConfigDto.setKeySize(configFromFile.getKeySize());
+            }
+            if (!string.IsNullOrWhiteSpace(configFromFile.getTemplateOid()))
+            {
+                csrConfigDto.setTemplateOid(configFromFile.getTemplateOid());
+            }
+            if (configFromFile.getMajorVersion() > 0)
+            {
+                csrConfigDto.setMajorVersion(configFromFile.getMajorVersion());
+            }
+            if (configFromFile.getMinorVersion() >= 0)
+            {
+                csrConfigDto.setMinorVersion(configFromFile.getMinorVersion());
+            }
+
+            return validateCsrConfig();
         }
 
-        return true;
+        private bool validateCsrConfig()
+        {
+            if (string.IsNullOrWhiteSpace(csrConfigDto.getEnName()))
+            {
+                log.LogInformation("Please enter a valid Name.");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(csrConfigDto.getSerialNumber()))
+            {
+                log.LogInformation("Please enter a valid Serial Number.");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(csrConfigDto.getKeyPassword()))
+            {
+                log.LogInformation("Please enter a password for the private key.");
+                return false;
+            }
+
+            if (csrConfigDto.getKeySize() < 1024)
+            {
+                log.LogInformation("Key size must be at least 1024 bits");
+                return false;
+            }
+
+            return true;
+        }
+
+        protected override bool process()
+        {
+            try
+            {
+                string subjectDn = csrConfigDto.getSubjectDn();
+                log.LogInformation($"Generated DN: {subjectDn}");
+                log.LogInformation($"RSA key size: {csrConfigDto.getKeySize()}");
+
+                if (!string.IsNullOrWhiteSpace(csrConfigDto.getTemplateOid()))
+                {
+                    log.LogInformation($"Certificate template OID: {csrConfigDto.getTemplateOid()} (v{csrConfigDto.getMajorVersion()}.{csrConfigDto.getMinorVersion()})");
+                }
+                
+                csrResponse = CmsRequestHelper.createCsr(csrConfigDto);
+                
+                byte[] publicKeyBytes = extractPublicKeyFromPrivateKey(csrResponse.getPrivateKeyBytes(), csrConfigDto.getKeyPassword());
+
+                string csrBase64 = Convert.ToBase64String(csrResponse.getCsrDer());
+                string cleanedCsr = StringUtils.CleanCsrString(csrBase64);
+
+                csrPem = convertToPem("CERTIFICATE REQUEST", csrResponse.getCsrDer());
+                csrDerBase64 = cleanedCsr;
+                encryptedPrivateKeyBase64 = Convert.ToBase64String(csrResponse.getPrivateKeyBytes());
+                publicKeyPem = convertToPem("PUBLIC KEY", publicKeyBytes);
+
+                log.LogInformation("Successfully generated CSR, encrypted private key, and public key");
+                return true;
+            }
+            catch (Exception e)
+            {
+                log.LogError(e, "Failed to generate CSR");
+                return false;
+            }
+        }
+
+        private byte[] extractPublicKeyFromPrivateKey(byte[] encryptedPrivateKeyBytes, string password)
+        {
+            using (RSA rsa = RSA.Create())
+            {
+                // Import the encrypted private key
+                rsa.ImportEncryptedPkcs8PrivateKey(password, encryptedPrivateKeyBytes, out _);
+                
+                // Export the public key
+                return rsa.ExportSubjectPublicKeyInfo();
+            }
+        }
+
+        protected override bool output()
+        {
+            string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+
+            string commonName = extractCommonNameFromDN(csrConfigDto.getSubjectDn());
+            string baseFileName = $"{commonName}_{timestamp}";
+
+            string csrFile = Path.Combine(outputDirectory, $"{baseFileName}.csr");
+            string keyFile = Path.Combine(outputDirectory, $"{baseFileName}.key");
+            string pubFile = Path.Combine(outputDirectory, $"{baseFileName}.pub");
+
+            bool valid = WriterHelper.writeFile(csrFile, SecurityUtils.encrypt(csrDerBase64));
+            valid = WriterHelper.writeFile(keyFile, SecurityUtils.encrypt(encryptedPrivateKeyBase64)) && valid;
+            valid = WriterHelper.writeFile(pubFile, SecurityUtils.encrypt(publicKeyPem)) && valid;
+
+            if (valid)
+            {
+                log.LogInformation($"Successfully saved:");
+                log.LogInformation($"  CSR: {csrFile}");
+                log.LogInformation($"  Private Key: {keyFile}");
+                log.LogInformation($"  Public Key: {pubFile}");
+            }
+
+            return valid;
+        }
+
+        private string extractCommonNameFromDN(string subjectDn)
+        {
+            try
+            {
+                string[] parts = subjectDn.Split(',');
+                foreach (string part in parts)
+                {
+                    string trimmed = part.Trim();
+                    if (trimmed.ToUpper().StartsWith("CN="))
+                    {
+                        return System.Text.RegularExpressions.Regex.Replace(
+                            trimmed.Substring(3).Trim(), 
+                            "[^a-zA-Z0-9_-]", 
+                            "_");
+                    }
+                }
+                return "CSR";
+            }
+            catch (Exception)
+            {
+                return "CSR";
+            }
+        }
+
+        private string convertToPem(string type, byte[] derBytes)
+        {
+            try
+            {
+                var pemObject = new PemObject(type, derBytes);
+                using var stringWriter = new StringWriter();
+                using var pemWriter = new Org.BouncyCastle.OpenSsl.PemWriter(stringWriter);
+                pemWriter.WriteObject(pemObject);
+                pemWriter.Writer.Flush();
+                return stringWriter.ToString();
+            }
+            catch (Exception e)
+            {
+                log.LogError(e, "Failed to convert to PEM format");
+                throw;
+            }
+        }
     }
-    
-    private string transform(string type, byte[] certificateRequest)
-    {
-        try
-        {
-            var pemObject = new Org.BouncyCastle.Utilities.IO.Pem.PemObject(type, certificateRequest);
-            using var stringWriter = new StringWriter();
-            using var pemWriter = new Org.BouncyCastle.OpenSsl.PemWriter(stringWriter);
-            pemWriter.WriteObject(pemObject);
-            pemWriter.Writer.Flush();
-            return stringWriter.ToString();
-        }
-        catch (Exception e)
-        {
-            log.LogError(e, "Something went wrong while transforming to PEM");
-            return null;
-        }
-    }
-    
-    private bool generateKeyPairs()
-    {
-        try
-        {
-            var keyPair = ECDSAUtils.getKeyPair();
-            publicKey = keyPair.Public;
-            privateKey = keyPair.Private;
-        }
-        catch (Exception e)
-        {
-            log.LogError(e, "Failed to generate CSR keys");
-            return false;
-        }
-
-        return true;
-    }
-
-    private X509Name buildX500SubjectBlock()
-    {
-        var subjectAttributes = new List<DerObjectIdentifier>
-        {
-            X509Name.EmailAddress // Email Address
-        };
-
-        var subjectValues = new List<string>
-        {
-            csrConfigDto.getEmailAddress()
-        };
-
-        return new X509Name(subjectAttributes, subjectValues);
-    }
-
-
-    
-    private X509Name buildX500AttributesBlock()
-    {
-        var oids = new List<DerObjectIdentifier>
-                 {
-            //bouncyCastle in C# doesn't store these by default so we added them manually 
-            // Serial Number
-            new DerObjectIdentifier("2.5.4.4"),
-            // UID (organization identifier)
-            new DerObjectIdentifier("0.9.2342.19200300.100.1.1"),
-            // Title (invoice type)
-            new DerObjectIdentifier("2.5.4.12"),
-            // Registered Address
-            new DerObjectIdentifier("2.5.4.26"),
-            // Business Category
-            new DerObjectIdentifier("2.5.4.15")
-        };
-
-        var values = new List<string>
-        {
-            csrConfigDto.getSerialNumber(),
-            csrConfigDto.getOrganizationIdentifier(),
-            csrConfigDto.getInvoiceType(),
-            csrConfigDto.getLocation(),
-            csrConfigDto.getIndustry()
-        };
-
-        return new X509Name(oids, values);
-    }
-    
 }

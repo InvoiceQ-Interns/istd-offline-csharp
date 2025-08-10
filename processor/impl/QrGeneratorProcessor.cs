@@ -6,7 +6,6 @@ using ISTD_OFFLINE_CSHARP.io;
 using ISTD_OFFLINE_CSHARP.security;
 using ISTD_OFFLINE_CSHARP.utils;
 using Microsoft.Extensions.Logging;
-using Org.BouncyCastle.Crypto.Parameters;
 
 namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl;
 
@@ -18,7 +17,7 @@ public class QrGeneratorProcessor : processor.ActionProcessor
     private String xmlPath = "";
     private String privateKeyPath = "";
     private String certificatePath = "";
-    private  ECPrivateKeyParameters privateKey;
+    private RSA privateKey;
     private String xmlFile;
     private String certificateStr;
     private EInvoiceSigningResults signingResults;
@@ -26,6 +25,7 @@ public class QrGeneratorProcessor : processor.ActionProcessor
     public QrGeneratorProcessor()
     {
         this.log = LoggingUtils.getLoggerFactory().CreateLogger<QrGeneratorProcessor>();
+        this.signingHelper = new SigningHelper();
     }
     
     protected override bool loadArgs(string[] args)
@@ -88,12 +88,18 @@ public class QrGeneratorProcessor : processor.ActionProcessor
         {
             privateKeyFile = SecurityUtils.decrypt(privateKeyFile);
             string key = privateKeyFile
-                .Replace("-----BEGIN EC PRIVATE KEY-----", "")
-                .Replace("-----END EC PRIVATE KEY-----", "")
+                .Replace("-----BEGIN ENCRYPTED PRIVATE KEY-----", "")
+                .Replace("-----END ENCRYPTED PRIVATE KEY-----", "")
+                .Replace("-----BEGIN PRIVATE KEY-----", "")
+                .Replace("-----END PRIVATE KEY-----", "")
+                .Replace("-----BEGIN RSA PRIVATE KEY-----", "")
+                .Replace("-----END RSA PRIVATE KEY-----", "")
                 .Replace(Environment.NewLine, "")
+                .Replace("\n", "")
+                .Replace("\r", "")
                 .Trim();
 
-            privateKey = ECDSAUtils.getPrivateKey(key);
+            privateKey = RSAUtils.getPrivateKey(key);
         }
         catch (Exception e)
         {
@@ -113,9 +119,7 @@ public class QrGeneratorProcessor : processor.ActionProcessor
             log?.LogInformation($"XML file [{xmlPath}] is empty");
             return false;
         }
+
         return true;
     }
-
-    
-    
 }

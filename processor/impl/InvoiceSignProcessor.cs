@@ -6,21 +6,19 @@ using ISTD_OFFLINE_CSHARP.io;
 using ISTD_OFFLINE_CSHARP.security;
 using ISTD_OFFLINE_CSHARP.utils;
 using Microsoft.Extensions.Logging;
-using Org.BouncyCastle.Crypto;
-using Org.BouncyCastle.Crypto.Parameters;
 
 namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl;
 
 public class InvoiceSignProcessor : processor.ActionProcessor
 {
-
     private readonly ILogger log;
     private readonly SigningHelper signingHelper;
     private string xmlPath = "";
     private string privateKeyPath = "";
     private string certificatePath = "";
     private string outputFile = "";
-    private  ECPrivateKeyParameters privateKey;
+    private string keyPassword = "";
+    private RSA privateKey;
     private string xmlFile = "";
     private string certificateStr = "";
     private EInvoiceSigningResults signingResults;
@@ -33,15 +31,16 @@ public class InvoiceSignProcessor : processor.ActionProcessor
 
     protected override bool loadArgs(string[] args)
     {
-        if (args.Length != 4)
+        if (args.Length < 4 || args.Length > 5)
         {
-            log?.LogInformation("Usage: dotnet run invoice-sign <xml-path> <private-key-path> <certificate-path> <output-file>");
+            log?.LogInformation("Usage: dotnet run invoice-sign <xml-path> <private-key-path> <certificate-path> <output-file> [key-password]");
             return false;
         }
         xmlPath = args[0];
         privateKeyPath = args[1];
         certificatePath = args[2];
         outputFile = args[3];
+        keyPassword = args.Length == 5 ? args[4] : "";
         return true;
     }
     
@@ -60,13 +59,11 @@ public class InvoiceSignProcessor : processor.ActionProcessor
 
     protected override bool process()
     {
-        
         if (signingHelper == null)
         {
             log?.LogError("SigningHelper is null. Initialization missing.");
             return false;
         }
-        
         
         signingResults = signingHelper.signEInvoice(xmlFile, privateKey, certificateStr);
         return signingResults != null && !string.IsNullOrWhiteSpace(signingResults.getSignedXml());
@@ -106,12 +103,9 @@ public class InvoiceSignProcessor : processor.ActionProcessor
         try
         {
             privateKeyFile = SecurityUtils.decrypt(privateKeyFile);
-            string key = privateKeyFile
-                .Replace("-----BEGIN EC PRIVATE KEY-----", "")
-                .Replace("-----END EC PRIVATE KEY-----", "")
-                .Replace(Environment.NewLine, "");
-
-            privateKey = ECDSAUtils.getPrivateKey(key);
+            
+            // Use the new PrivateKeyUtil to load the private key
+            privateKey = PrivateKeyUtil.loadPrivateKey(privateKeyFile, keyPassword);
         }
         catch (Exception e)
         {

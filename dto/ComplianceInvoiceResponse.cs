@@ -58,7 +58,7 @@ namespace ISTD_OFFLINE_CSHARP.DTOs
             this.clearanceStatus = clearanceStatus;
         }
 
-        public bool IsValid()
+        public bool isValid()
         {
             return (!string.IsNullOrWhiteSpace(reportingStatus) && string.Equals(reportingStatus, "REPORTED", StringComparison.OrdinalIgnoreCase)) ||
                    (!string.IsNullOrWhiteSpace(clearanceStatus) && string.Equals(clearanceStatus, "CLEARED", StringComparison.OrdinalIgnoreCase));

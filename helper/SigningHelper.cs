@@ -34,7 +34,7 @@ namespace ISTD_OFFLINE_CSHARP.Helper
             appResources = new AppResources();
         }
 
-        public EInvoiceSigningResults? signEInvoice(string xmlDocument, ECPrivateKeyParameters privateKey,
+        public EInvoiceSigningResults? signEInvoice(string xmlDocument, RSA privateKey,
             string certificateAsString)
         {
             try

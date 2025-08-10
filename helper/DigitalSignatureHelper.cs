@@ -1,11 +1,8 @@
-
 using System.Security.Cryptography;
 using ISTD_OFFLINE_CSHARP.ActionProcessor.impl;
 using ISTD_OFFLINE_CSHARP.DTOs;
 using ISTD_OFFLINE_CSHARP.utils;
 using Microsoft.Extensions.Logging;
-using Org.BouncyCastle.Crypto.Parameters;
-using Org.BouncyCastle.Crypto.Signers;
 
 namespace ISTD_OFFLINE_CSHARP.helper
 {
@@ -18,36 +15,26 @@ namespace ISTD_OFFLINE_CSHARP.helper
             this.log = LoggingUtils.getLoggerFactory().CreateLogger<DigitalSignatureHelper>();
         }
 
-        public DigitalSignature getDigitalSignature( ECPrivateKeyParameters privateKeyParams, string invoiceHash)
+        public DigitalSignature getDigitalSignature(RSA privateKey, string invoiceHash)
         {
-
-
             byte[] xmlHashingBytes = Convert.FromBase64String(invoiceHash);
-            byte[] digitalSignatureBytes = signECDSA(privateKeyParams, xmlHashingBytes);
+            byte[] digitalSignatureBytes = signRSA(privateKey, xmlHashingBytes);
 
             string digitalSignature = Convert.ToBase64String(digitalSignatureBytes);
             return new DigitalSignature(digitalSignature, xmlHashingBytes);
-
-
         }
 
-        private byte[] signECDSA( ECPrivateKeyParameters privateKey, byte[] messageHash)
+        private byte[] signRSA(RSA privateKey, byte[] messageHash)
         {
-            var signer = new ECDsaSigner();
-            signer.Init(true, privateKey);
-
-            // Sign the hashed message, returns BigInteger[] { r, s }
-            var signatureComponents = signer.GenerateSignature(messageHash);
-
-            var r = signatureComponents[0];
-            var s = signatureComponents[1];
-            
-            var sequence = new Org.BouncyCastle.Asn1.DerSequence(
-                new Org.BouncyCastle.Asn1.DerInteger(r),
-                new Org.BouncyCastle.Asn1.DerInteger(s)
-            );
-
-            return sequence.GetDerEncoded();
+            try
+            {
+                return privateKey.SignHash(messageHash, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "Failed to sign with RSA");
+                throw;
+            }
         }
     }
 }
