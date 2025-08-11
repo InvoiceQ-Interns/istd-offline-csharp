@@ -56,8 +56,9 @@ namespace ISTD_OFFLINE_CSHARP.Helper
 
 
                 DigitalSignature digitalSignature = digitalSignatureHelper.getDigitalSignature(privateKey, invoiceHash);
+                Console.WriteLine("testtttt");
                 Console.WriteLine(digitalSignature.getDigitalSignature());
-
+                Console.WriteLine("testtttt");
 
                 xmlDocument = transformXml(xmlDocument);
 
