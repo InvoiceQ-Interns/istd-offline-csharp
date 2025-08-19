@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -69,10 +70,13 @@ namespace ISTD_OFFLINE_CSHARP.Helper
                     Encoding.UTF8.GetBytes(bytesToHex(hashStringToBytes(Encoding.UTF8.GetBytes(certificateAsString)))));
                 
                 Console.WriteLine("Certificate Hashing: " + certificateHashing);
+
+                // Convert certificate serial number to base 10 format
+                string serialNumberBase10 = convertSerialNumberToBase10(certificate.SerialNumber);
                
                 string signedPropertiesHashing = populateSignedSignatureProperties(
                     document, nameSpacesMap, certificateHashing, getCurrentTimestamp(),
-                    certificate.Issuer, certificate.SerialNumber);
+                    certificate.Issuer, serialNumberBase10);
                 
                 Console.WriteLine("Signed Properties Hashing: " + signedPropertiesHashing);
                 
@@ -535,6 +539,54 @@ namespace ISTD_OFFLINE_CSHARP.Helper
                 throw;
             }
         }
+
+        /// <summary>
+        /// Converts certificate serial number to base 10 format
+        /// </summary>
+        private static string convertSerialNumberToBase10(string serialNumber)
+        {
+            try
+            {
+                // Remove any whitespace or formatting
+                serialNumber = serialNumber.Trim();
+                
+                // If it's already in decimal format, return as is
+                if (serialNumber.All(c => char.IsDigit(c)))
+                {
+                    return serialNumber;
+                }
+                
+                // If it contains hex characters (A-F), treat as hexadecimal
+                if (serialNumber.Any(c => "ABCDEFabcdef".Contains(c)))
+                {
+                    // Remove any hex prefix if present
+                    if (serialNumber.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                    {
+                        serialNumber = serialNumber.Substring(2);
+                    }
+                    
+                    // Convert from hex to decimal
+                    var decimalValue = System.Numerics.BigInteger.Parse(serialNumber, NumberStyles.HexNumber);
+                    return decimalValue.ToString();
+                }
+                
+                // Try to parse as hex anyway (some certificates have hex without obvious indicators)
+                try
+                {
+                    var decimalValue = System.Numerics.BigInteger.Parse(serialNumber, NumberStyles.HexNumber);
+                    return decimalValue.ToString();
+                }
+                catch
+                {
+                    // If all else fails, return the original string
+                    return serialNumber;
+                }
+            }
+            catch (Exception)
+            {
+                // If conversion fails, return the original string
+                return serialNumber;
+            }
+        }
     }
 }
-
