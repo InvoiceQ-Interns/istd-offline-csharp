@@ -5,7 +5,7 @@
                 xmlns:sig="urn:oasis:names:specification:ubl:schema:xsd:CommonSignatureComponents-2" version="1.0">
     <xsl:output method="xml" encoding="utf-8" indent="no"/>
 
-    <xsl:param name="ublExt">"UBL-TO-BE-REPLACED"</xsl:param>
+    <xsl:param name="ublExt">UBL-TO-BE-REPLACED</xsl:param>
 
     <xsl:template match="//*[local-name()='Invoice']">
         <xsl:copy>
@@ -19,4 +19,5 @@
             <xsl:apply-templates select="@* | node()"/>
         </xsl:copy>
     </xsl:template>
+
 </xsl:stylesheet>

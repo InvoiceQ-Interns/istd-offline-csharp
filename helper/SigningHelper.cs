@@ -19,7 +19,7 @@ namespace ISTD_OFFLINE_CSHARP.Helper
     public class SigningHelper
     {
         private readonly ILogger<SigningHelper> log;
-        private readonly string dateTimeFormatPattern = "yyyy-MM-ddTHH:mm:ss";
+        private readonly string dateTimeFormatPattern = "yyyy-MM-dd'T'HH:mm:ss";
         private readonly HashingHelper hashingHelper;
         private readonly DigitalSignatureHelper digitalSignatureHelper;
         private readonly QRGeneratorHelper qrGeneratorHelper;
@@ -56,9 +56,7 @@ namespace ISTD_OFFLINE_CSHARP.Helper
 
 
                 DigitalSignature digitalSignature = digitalSignatureHelper.getDigitalSignature(privateKey, invoiceHash);
-                Console.WriteLine("testtttt");
-                Console.WriteLine(digitalSignature.getDigitalSignature());
-                Console.WriteLine("testtttt");
+                
 
                 xmlDocument = transformXml(xmlDocument);
 
@@ -69,12 +67,14 @@ namespace ISTD_OFFLINE_CSHARP.Helper
 
                 string certificateHashing = encodeBase64(
                     Encoding.UTF8.GetBytes(bytesToHex(hashStringToBytes(Encoding.UTF8.GetBytes(certificateAsString)))));
-
+                
+                Console.WriteLine("Certificate Hashing: " + certificateHashing);
                
                 string signedPropertiesHashing = populateSignedSignatureProperties(
                     document, nameSpacesMap, certificateHashing, getCurrentTimestamp(),
                     certificate.Issuer, certificate.SerialNumber);
-
+                
+                Console.WriteLine("Signed Properties Hashing: " + signedPropertiesHashing);
                 
                 populateUblExtensions(document, nameSpacesMap, digitalSignature.getDigitalSignature(),
                     signedPropertiesHashing, encodeBase64(digitalSignature.getXmlHashing()),
@@ -119,23 +119,23 @@ namespace ISTD_OFFLINE_CSHARP.Helper
             {
                 log.LogDebug("Starting XML transformation pipeline");
 
-                
+
                 xmlDocument = transformXmlStep(xmlDocument, appResources.getRemoveElementXslTransformer(),
                     "removeElements");
 
-                
+
                 xmlDocument = transformXmlStep(xmlDocument, appResources.getAddUBLElementTransformer(),
                     "addUBLElement");
-                xmlDocument = xmlDocument.Replace("UBL-TO-BE-REPLACED", appResources.getUblXml());
+                xmlDocument = cleanReplaceText(xmlDocument, "UBL-TO-BE-REPLACED", appResources.getUblXml());
 
-                
+
                 xmlDocument = transformXmlStep(xmlDocument, appResources.getAddQRElementTransformer(), "addQRElement");
-                xmlDocument = xmlDocument.Replace("QR-TO-BE-REPLACED", appResources.getQrXml());
+                xmlDocument = cleanReplaceText(xmlDocument, "QR-TO-BE-REPLACED", appResources.getQrXml());
 
-                
+
                 xmlDocument = transformXmlStep(xmlDocument, appResources.getAddSignatureElementTransformer(),
                     "addSignatureElement");
-                xmlDocument = xmlDocument.Replace("SIGN-TO-BE-REPLACED", appResources.getSignatureXml());
+                xmlDocument = cleanReplaceText(xmlDocument, "SIGN-TO-BE-REPLACED", appResources.getSignatureXml());
 
                 log.LogDebug("XML transformation pipeline completed successfully");
                 return xmlDocument;
@@ -145,6 +145,21 @@ namespace ISTD_OFFLINE_CSHARP.Helper
                 log.LogError(ex, "Failed during XML transformation pipeline");
                 throw new InvalidOperationException("XML transformation pipeline failed", ex);
             }
+        }
+
+        /// <summary>
+        /// Clean replacement that handles quotes and whitespace properly
+        /// </summary>
+        private static string cleanReplaceText(string xmlDocument, string placeholder, string replacement)
+        {
+            // Remove any surrounding quotes from placeholder in the XML
+            xmlDocument = xmlDocument.Replace($"\"{placeholder}\"", placeholder);
+            xmlDocument = xmlDocument.Replace($"'{placeholder}'", placeholder);
+            
+            // Perform the actual replacement
+            xmlDocument = xmlDocument.Replace(placeholder, replacement);
+            
+            return xmlDocument;
         }
 
         private string transformXmlStep(string xmlDocument, XslCompiledTransform transformer,
@@ -263,7 +278,7 @@ namespace ISTD_OFFLINE_CSHARP.Helper
         {
             var namespaceManager = new XmlNamespaceManager(document.NameTable);
 
-            
+
             foreach (var ns in nameSpaces)
             {
                 if (string.IsNullOrEmpty(ns.Key))
@@ -503,7 +518,7 @@ namespace ISTD_OFFLINE_CSHARP.Helper
                 XmlDocument document = getXmlDocument(xmlDocument);
                 var nameSpaces = getNameSpacesMap();
 
-                
+
                 string? uuid = getNodeXmlTextValue(document, nameSpaces, "/Invoice/cbc:UUID");
 
                 if (string.IsNullOrEmpty(uuid))
@@ -522,3 +537,4 @@ namespace ISTD_OFFLINE_CSHARP.Helper
         }
     }
 }
+
