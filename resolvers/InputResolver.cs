@@ -28,10 +28,10 @@ public class InputResolver
         case "generate-qr":
             return new QrGeneratorProcessor();
 
-        case "submit-clearance":
+        case "invoice-submit":
             return new InvoiceSubmitProcessor();
 
-        case "submit-report":
+        case "invoice-report":
             return new ReportSubmitProcessor();
 
         case "compliance-invoice":

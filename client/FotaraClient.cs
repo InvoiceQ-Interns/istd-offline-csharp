@@ -122,26 +122,21 @@ public class FotaraClient
         return null;
     }
     
-    public EInvoiceResponse submitInvoice(CertificateResponse productionCertificateResponse, string jsonBody)
+    public EInvoiceResponse submitInvoice(string jsonBody, string clientId, string secretKey)
     {
         try
         {
             var httpClient = new HttpClient();
             string url = propertiesManager.getProperty("fotara.api.url.prod.invoice");
 
-            string auth = $"{productionCertificateResponse.binarySecurityToken}:{productionCertificateResponse.binarySecurityToken}";
-            string encodedAuth = Convert.ToBase64String(Encoding.ASCII.GetBytes(auth));
-            string authHeader = $"Basic {encodedAuth}";
-
-            var request = new HttpRequestMessage(HttpMethod.Post, url)
-            {
-                Content = new StringContent(jsonBody, Encoding.UTF8, "application/json")
-            };
-            request.Headers.Add("Authorization", authHeader);
+            
+            string jsonRequest = $"{{\"invoice\":\"{jsonBody}\"}}";
+            var request = getSubmitHttpRequest(jsonRequest, url, clientId, secretKey);
+            
 
             var response = httpClient.Send(request);
             Console.WriteLine($"Response Code: {(int)response.StatusCode}");
-
+            Console.WriteLine($"Response Body: {response.Content.ReadAsStringAsync().Result}");
             if ((int)response.StatusCode / 100 == 2)
             {
                 string responseBody = response.Content.ReadAsStringAsync().Result;
@@ -150,7 +145,7 @@ public class FotaraClient
         }
         catch (Exception e)
         {
-            Console.WriteLine($"failed to compliance CSR [{e.Message}]");
+            Console.WriteLine($"failed to submit invoice [{e.Message}]");
         }
 
         return null;
@@ -170,6 +165,19 @@ public class FotaraClient
 
         return request;
     }
+    private HttpRequestMessage getSubmitHttpRequest(string jsonBody, string url, string clientId, string secretKey)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = new StringContent(jsonBody, Encoding.UTF8, "application/json")
+        };
+        
+        request.Headers.Add("Accept", "application/json");
+        request.Headers.Add("Client-Id", clientId);
+        request.Headers.Add("Secret-Key", secretKey);
+
+        return request;
+    }
     
     private HttpRequestMessage getComplianceCsrHttpRequest(string otp, string url, string requestBody)
     {
@@ -186,25 +194,24 @@ public class FotaraClient
         return request;
     }
     
-    public EInvoiceResponse reportInvoice(CertificateResponse productionCertificateResponse, string jsonBody)
+    public EInvoiceResponse reportInvoice(string jsonBody, string clientId, string secretKey)
     {
         try
         {
             var httpClient = new HttpClient();
-            var url = propertiesManager.getProperty("fotara.api.url.prod.report.invoice");
+            string url = propertiesManager.getProperty("fotara.api.url.prod.invoice");
 
-            var auth = $"{productionCertificateResponse.binarySecurityToken}:{productionCertificateResponse.binarySecurityToken}";
-            var encodedAuth = Convert.ToBase64String(Encoding.ASCII.GetBytes(auth));
-            var authHeader = $"Basic {encodedAuth}";
+            
+            string jsonRequest = $"{{\"invoice\":\"{jsonBody}\"}}";
+            var request = getSubmitHttpRequest(jsonRequest, url, clientId, secretKey);
+            
 
-            var request = getDefaultHttpRequest(jsonBody, url, authHeader);
             var response = httpClient.Send(request);
-
-            log.LogDebug("Response Code: {StatusCode}", (int)response.StatusCode);
-
+            Console.WriteLine($"Response Code: {(int)response.StatusCode}");
+            Console.WriteLine($"Response Body: {response.Content.ReadAsStringAsync().Result}");
             if ((int)response.StatusCode / 100 == 2)
             {
-                var responseBody = response.Content.ReadAsStringAsync().Result;
+                string responseBody = response.Content.ReadAsStringAsync().Result;
                 return JsonUtils.readJson<EInvoiceResponse>(responseBody);
             }
         }

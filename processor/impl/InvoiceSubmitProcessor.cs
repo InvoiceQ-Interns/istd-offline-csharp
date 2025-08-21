@@ -20,7 +20,10 @@ public class InvoiceSubmitProcessor : processor.ActionProcessor
     private EInvoiceResponse eInvoiceResponse;
     private string outputPath;
     private readonly ILogger log;
-    
+    private string clientId;
+    private string secretKey;
+    private byte[] invoiceBytes;
+    private string encodedXml;
     public InvoiceSubmitProcessor()
     {
         this.log = LoggingUtils.getLoggerFactory().CreateLogger<InvoiceSubmitProcessor>();
@@ -31,13 +34,13 @@ public class InvoiceSubmitProcessor : processor.ActionProcessor
     {
         if (args.Length != 3)
         {
-            log?.LogInformation("Usage: dotnet run submit <signed-xml-path> <production-certificate-response-path> <output-path>");
+            log?.LogInformation("Usage: dotnet run submit <client-id> <secret-key> <signed-xml-path>");
             return false;
         }
 
-        xmlPath = args[0];
-        productionCertificateResponsePath = args[1];
-        outputPath = args[2];
+        clientId = args[0];
+        secretKey = args[1];
+        xmlPath = args[2];
         client = new FotaraClient(propertiesManager);
 
         return true;
@@ -45,47 +48,39 @@ public class InvoiceSubmitProcessor : processor.ActionProcessor
 
     protected override bool validateArgs()
     {
-        if (string.IsNullOrWhiteSpace(outputPath))
-        {
-            log?.LogInformation("Invalid output path");
+       if (string.IsNullOrWhiteSpace(clientId)){
+            log?.LogInformation("Invalid client ID");
             return false;
-        }
+       }
+       if (string.IsNullOrWhiteSpace(secretKey)) {
+            log?.LogInformation("Invalid secret key");
+            return false; 
+       }
 
-        signedXml = ReaderHelper.readFileAsString(xmlPath);
+       signedXml = ReaderHelper.readFileAsString(xmlPath);
         if (string.IsNullOrWhiteSpace(signedXml))
         {
             log?.LogInformation($"Invalid signed xml [{xmlPath}]");
         }
 
-        string productionCertificateResponseStr = ReaderHelper.readFileAsString(productionCertificateResponsePath);
-        if (string.IsNullOrWhiteSpace(productionCertificateResponseStr))
-        {
-            log?.LogInformation($"Invalid production certificate response [{productionCertificateResponsePath}]");
-        }
-
-        productionCertificateResponseStr = SecurityUtils.decrypt(productionCertificateResponseStr);
-        productionCertificateResponse = JsonUtils.readJson<CertificateResponse>(productionCertificateResponseStr);
-
-        return productionCertificateResponse != null
-               && !string.IsNullOrWhiteSpace(productionCertificateResponse.getSecret())
-               && !string.IsNullOrWhiteSpace(productionCertificateResponse.getBinarySecurityToken());
+        return true;
     }
 
     protected override bool process()
     {
-        string jsonBody = requesterGeneratorHelper.generateEInvoiceRequest(signedXml);
-        eInvoiceResponse = client.submitInvoice(productionCertificateResponse, jsonBody);
-
-        return eInvoiceResponse != null &&
-               (string.Equals(eInvoiceResponse.getStatus(), "CLEARED", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(eInvoiceResponse.getStatus(), "REPORTED", StringComparison.OrdinalIgnoreCase));
+        
+        invoiceBytes = System.Text.Encoding.UTF8.GetBytes(signedXml);
+        
+        encodedXml= Convert.ToBase64String(invoiceBytes);
+        client.submitInvoice(encodedXml, clientId, secretKey);
+        return true;
     }
 
     protected override bool output()
     {
         string responseJson = JsonUtils.toJson(eInvoiceResponse);
         log?.LogInformation($"Response [{responseJson}]");
-        WriterHelper.writeFile(outputPath, responseJson);
+
         return true;
     }
 }
