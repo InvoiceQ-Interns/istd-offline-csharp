@@ -33,20 +33,18 @@ namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl
 
         protected override bool loadArgs(string[] args)
         {
-            if (args.Length != 4)
+            if (args.Length != 2)
             {
-                log.LogInformation("Usage: dotnet run generate-csr-keys <directory> <en-name> <serial-number> <config-file>");
+                log.LogInformation("Usage: dotnet run generate-csr-keys <directory> <config-file>");
                 return false;
             }
 
             outputDirectory = args[0];
-            string enName = args[1];
-            string serialNumber = args[2];
-            configFilePath = args[3];
+            configFilePath = args[1];
 
             csrConfigDto = new CsrConfigDto();
-            csrConfigDto.setEnName(enName);
-            csrConfigDto.setSerialNumber(serialNumber);
+            // Load standard configuration from resources first
+            csrConfigDto.loadStandardConfigFromResources();
 
             return true;
         }
@@ -79,6 +77,29 @@ namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl
                 return false;
             }
 
+            // Load user data from config file
+            if (!string.IsNullOrWhiteSpace(configFromFile.getEnName()))
+            {
+                csrConfigDto.setEnName(configFromFile.getEnName());
+            }
+            if (!string.IsNullOrWhiteSpace(configFromFile.getSerialNumber()))
+            {
+                csrConfigDto.setSerialNumber(configFromFile.getSerialNumber());
+            }
+            if (!string.IsNullOrWhiteSpace(configFromFile.getOrganizationIdentifier()))
+            {
+                csrConfigDto.setOrganizationIdentifier(configFromFile.getOrganizationIdentifier());
+            }
+            if (!string.IsNullOrWhiteSpace(configFromFile.getOrganizationUnitName()))
+            {
+                csrConfigDto.setOrganizationUnitName(configFromFile.getOrganizationUnitName());
+            }
+            if (!string.IsNullOrWhiteSpace(configFromFile.getCountry()))
+            {
+                csrConfigDto.setCountry(configFromFile.getCountry());
+            }
+
+            // Load optional override values from config file
             if (configFromFile.getKeySize() > 0)
             {
                 csrConfigDto.setKeySize(configFromFile.getKeySize());
@@ -91,7 +112,7 @@ namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl
             {
                 csrConfigDto.setMajorVersion(configFromFile.getMajorVersion());
             }
-            if (configFromFile.getMinorVersion() >= 0)
+            if (configFromFile.getMinorVersion() > 0)
             {
                 csrConfigDto.setMinorVersion(configFromFile.getMinorVersion());
             }
@@ -113,9 +134,9 @@ namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl
                 return false;
             }
 
-            if (csrConfigDto.getKeySize() < 1024)
+            if (csrConfigDto.getKeySize() < 2048)
             {
-                log.LogInformation("Key size must be at least 1024 bits");
+                log.LogInformation("Key size must be at least 2048 bits");
                 return false;
             }
 

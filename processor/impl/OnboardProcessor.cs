@@ -59,6 +59,9 @@ namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl
             configFilePath = args[4];
 
             csrConfigDto = new CsrConfigDto();
+            // Load standard configuration from resources first
+            csrConfigDto.loadStandardConfigFromResources();
+            // Then set user-provided values
             csrConfigDto.setEnName(enName);
             csrConfigDto.setSerialNumber(serialNumber);
 
@@ -106,7 +109,7 @@ namespace ISTD_OFFLINE_CSHARP.ActionProcessor.impl
             {
                 csrConfigDto.setMajorVersion(configFromFile.getMajorVersion());
             }
-            if (configFromFile.getMinorVersion() >= 0)
+            if (configFromFile.getMinorVersion() > 0)
             {
                 csrConfigDto.setMinorVersion(configFromFile.getMinorVersion());
             }
