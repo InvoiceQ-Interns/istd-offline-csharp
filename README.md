@@ -46,7 +46,7 @@ By automating compliance with e-invoicing regulations, the SDK ensures data inte
 
 Within the active folder, use the following command to install Java ISTD-SDK.
 
-```$ git clone <https://github.com/InvoiceQ-Interns/istd-offline-csharp.git>```
+```$ git clone https://github.com/InvoiceQ-Interns/istd-offline-csharp.git```
 
 Then go to the ```istd-offline-csharp.csproj``` and add the needed libraries.
 ```
