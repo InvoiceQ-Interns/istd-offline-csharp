@@ -112,7 +112,7 @@ Use the SDK from the windows powershell in the following format:
 
 #### Usage Example
 
-```$ env:env=”dev”; dotnet run dotnet run generating-csr-keys “../folder/output/” “../folder/config.json”```
+```$ env:env=”dev”; dotnet run generating-csr-keys “../folder/output/” “../folder/config.json”```
 
 #### Note
 
