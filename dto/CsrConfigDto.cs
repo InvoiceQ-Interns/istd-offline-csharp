@@ -6,7 +6,7 @@ namespace ISTD_OFFLINE_CSHARP.DTOs
 {
     public class CsrConfigDto
     {
-        [JsonProperty("Common Name")]
+        [JsonProperty("CommonName")]
         private string? enName;
 
         [JsonProperty("organization")]
